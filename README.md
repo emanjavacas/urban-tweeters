@@ -1,4 +1,4 @@
-# twitproj
+# twitviz
 
 A Clojure project based on Quil and Unfolding for Processing for visualizing urban
 multilingualism through Twitter data. 
