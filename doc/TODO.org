@@ -1,0 +1,16 @@
+* Bots
+- Automatically check for bots (by setting threshold on the /statuses_count/ field and then display language statistics
+- Check against known bot-statistics (is there any diffs between georef and non-georef bots)
+
+* Tourists
+- Discussion:
+  - How to identify (and filter tourists) based on their profiles ("user.location", "user.time_zone")
+  - Why to filter tourists, research question
+
+* Application feats:
+- How to put key-options on the screen
+- Plot language pairs
+
+* Visualization
+- Distributions:
+  - Implement segregation dissimilarity measure (ranges from 0 to 2)
