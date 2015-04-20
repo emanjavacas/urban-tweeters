@@ -33,11 +33,6 @@
          v (- (count coll) m)]
      (some #(when (<= v (val %)) (key %)) f))))
 
-(defn in-rect
-  [px py x y w h]
-  (and (>= px x) (< px (+ x w))
-       (>= py y) (< py (+ y h))))
-
 (defn rescaler
   ;http://stackoverflow.com/questions/5294955/
   "returns a function that scales x to a new range (new-min new-max) 
@@ -47,6 +42,27 @@
     (+ new-min (/ (* (- new-max new-min)
                      (- x min))
                   (- max min)))))
+
+;;; GEOMETRY
+(defn in-rect
+  [px py x y w h]
+  (and (>= px x) (< px (+ x w))
+       (>= py y) (< py (+ y h))))
+
+(defn- crossing-number
+  "Determine crossing number for given point and segment of a polygon.
+   See http://geomalgorithms.com/a03-_inclusion.html"
+  [[px py] [[x1 y1] [x2 y2]]]
+  (if (or (and (<= y1 py) (> y2 py))
+          (and (> y1 py) (<= y2 py)))
+    (let [vt (/ (- py y1) (- y2 y1))]
+      (if (< px (+ x1 (* vt (- x2 x1))))
+        1 0))
+    0))
+
+(defn inside? [p poly]
+  (odd? (reduce + (map #(crossing-number p %)
+                       (concat (partition 2 1 poly) (list (list (last poly) (first poly))))))))
 
 ;;; I/O
 (defn lazy-tweets [f] 
@@ -160,6 +176,12 @@
              [(tweet->lang tw) (tweet->coors tw)])]
     (ps->grid2 tiles (filter #(not (nil? (first %))) ps))))
 
+;;; HOODS
+(defn fetch-hoods [cityfn]
+  (let [cityjson (json/read-json (slurp cityfn))]
+    (map #(first (get-in % [:geometry :coordinates])) (:features cityjson))))
+
+
 ;; Map of lang to tweets
 ;; (def by-lang (group-by tweet->lang (tweet-stream "amsterdam")))
 ;;; counts of distinct users by 
@@ -167,3 +189,11 @@
 ;; (def by-id (group-by #(get-in % ["user" "id"]) (tweet-stream "amsterdam")))
 ;; (for [t (get by-lang "is")]
 ;;   (get-in t ["coordinates" "coordinates"]))
+
+;; (defn inside?
+;;   "Is point inside the given polygon?"
+;;   [p poly]
+;;   (odd?
+;;    (reduce + (for [n (range (dec (count poly)))]
+;;                (crossing-number p [(nth poly n)
+;;                                    (nth poly (+ n 1))])))))

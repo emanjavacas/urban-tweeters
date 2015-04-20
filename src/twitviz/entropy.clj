@@ -9,8 +9,9 @@
             [twitviz.utils :as u]))
 
 (def nm 100)
-(def city "antwerp")
+(def city "berlin")
 ;; (def grid (u/create-grid nm city))
+;; (def grid (u/load-grid "resources/berlin100.grid"))
 
 (def max-range 
   (let [langs (for [[xyz m] grid :when xyz] m)]
@@ -40,7 +41,7 @@
 ;;         b 0]
 ;;     [r g b]))
 
-(let [scaler (rescaler 0 max-range 0 255)]
+(let [scaler (u/rescaler 0 max-range 0 255)]
   (defn lang->color [ls f]
     (let [r 255
           g (scaler (f ls))
@@ -54,7 +55,7 @@
                  (quil.applet/current-applet) 
 ;                 (de.fhpotsdam.unfolding.providers.Microsoft$HybridProvider.)
                  (de.fhpotsdam.unfolding.providers.StamenMapProvider$TonerBackground.))
-        center-lat (first ((keyword city) centers)) center-lon (second ((keyword city) centers))
+        center-lat (first ((keyword city) u/centers)) center-lon (second ((keyword city) u/centers))
         location (Location. center-lat center-lon)]
     (MapUtils/createDefaultEventDispatcher (quil.applet/current-applet) [the-map])
         (set-state!

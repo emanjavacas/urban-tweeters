@@ -26,24 +26,25 @@
         b (scaler (Math/abs (- l1 l2)))]
     [r g b]))
 
-(def grid
-  (let [[min-lat min-lon max-lat max-lon] (boxes :brussels)
-        w (/ (- max-lat min-lat) nm)
-        h (/ (- max-lon min-lon) nm)
-        tiles (for [lat (range min-lat max-lat w)
-                    lon (range min-lon max-lon w)]
-                [lat lon w])
-        ps (for [tw (tweet-stream "brussels")
-                 :let [l (tweet->lang tw)]
-                 :when (some #{l} ["fr" "nl"])]
-             [l (tweet->coors tw)])]
-    (ps->grid tiles ps)))
+;; (def grid
+;;   (let [[min-lat min-lon max-lat max-lon] (boxes :brussels)
+;;         w (/ (- max-lat min-lat) nm)
+;;         h (/ (- max-lon min-lon) nm)
+;;         tiles (for [lat (range min-lat max-lat w)
+;;                     lon (range min-lon max-lon w)]
+;;                 [lat lon w])
+;;         ps (for [tw (tweet-stream "brussels")
+;;                  :let [l (tweet->lang tw)]
+;;                  :when (some #{l} ["fr" "nl"])]
+;;              [l (tweet->coors tw)])]
+;;     (ps->grid tiles ps)))
 
 (defn setup []
   (let [the-map (UnfoldingMap. 
                  (quil.applet/current-applet) 
                  (de.fhpotsdam.unfolding.providers.StamenMapProvider$TonerBackground.))
-        location (apply Location. (:brussels centers))]
+        location (Location. (first (:brussels centers))
+                            (second (:brussels centers)))]
     (MapUtils/createDefaultEventDispatcher (quil.applet/current-applet) [the-map])
         (set-state!
          :map (doto the-map
