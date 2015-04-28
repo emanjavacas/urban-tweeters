@@ -11,7 +11,7 @@
 (def nm 100)
 (def city "berlin")
 ;; (def grid (u/create-grid nm city))
-;; (def grid (u/load-grid "resources/berlin100.grid"))
+(def grid (u/load-grid "resources/berlin100.grid"))
 
 (def max-range 
   (let [langs (for [[xyz m] grid :when xyz] m)]
@@ -31,7 +31,7 @@
                       Math/abs))))
          (reduce +))))
 
-;; (def max-range (entropy (repeat max-range 1)))
+(def max-range (entropy (repeat max-range 1))) 
 
 ;; (defn lang->color 
 ;;   [max-range ls]
@@ -55,7 +55,8 @@
                  (quil.applet/current-applet) 
 ;                 (de.fhpotsdam.unfolding.providers.Microsoft$HybridProvider.)
                  (de.fhpotsdam.unfolding.providers.StamenMapProvider$TonerBackground.))
-        center-lat (first ((keyword city) u/centers)) center-lon (second ((keyword city) u/centers))
+        center-lat (first ((keyword city) u/centers))
+        center-lon (second ((keyword city) u/centers))
         location (Location. center-lat center-lon)]
     (MapUtils/createDefaultEventDispatcher (quil.applet/current-applet) [the-map])
         (set-state!
@@ -74,7 +75,7 @@
       (let [pos1 (.getScreenPosition the-map (Location. x y))
             pos2 (.getScreenPosition the-map (Location. (+ x side) (+ y side)))
             px (.x pos1) py (.y pos1) w (- (.x pos2) px) h (- (.y pos2) py)
-            [r g b] (lang->color-memo (vals ls) count)]
+            [r g b] (lang->color-memo (vals ls) entropy)]
         (no-stroke)
         (fill r g b 50)
         (rect px py w h)))

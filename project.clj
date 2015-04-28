@@ -13,4 +13,5 @@
                  [unfolding "0.9.6"]
                  [clj-json "0.5.3"]
                  [my-utils "0.1"]
-                 [incanter "1.9.0"]])
+                 [incanter "1.9.0"]
+                 [controlP5 "2.0.4"]])

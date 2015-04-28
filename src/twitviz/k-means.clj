@@ -21,8 +21,6 @@
   (let [n (count ps)]
     (map #(/ % n) (apply map + ps))))
 
-(update-centroid [1] [2] [3])
-
 (defn cluster-points
   "map points to their closest centroid"
   [ps centroids dist-fn]

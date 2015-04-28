@@ -24,6 +24,17 @@
    :brussels [50.745668 4.208164 50.942552 4.562496]})
 
 ;;; GENERAL
+(defn iterator
+  "defines a lazy-seq that iterates over
+  a given seq. Given dependance on nth and
+  count it should be called on vecs"
+  ([coll] (iterator coll 0))
+  ([coll n]
+   (lazy-seq
+    (cons (nth coll n)
+          (iterator coll (if (= (inc n) (count coll))
+                           0 (inc n)))))))
+
 (defn all-but-n
   "return the element ocurring at least k-n times
   where k is the length of coll"
@@ -44,10 +55,11 @@
                   (- max min)))))
 
 ;;; GEOMETRY
-(defn in-rect
-  [px py x y w h]
-  (and (>= px x) (< px (+ x w))
-       (>= py y) (< py (+ y h))))
+(defn in-rect?
+  [px py [x y w h]]
+  (let [h (or h w)]
+    (and (>= px x) (< px (+ x w))
+         (>= py y) (< py (+ y h)))))
 
 (defn- crossing-number
   "Determine crossing number for given point and segment of a polygon.
@@ -61,8 +73,11 @@
     0))
 
 (defn inside? [p poly]
-  (odd? (reduce + (map #(crossing-number p %)
-                       (concat (partition 2 1 poly) (list (list (last poly) (first poly))))))))
+  (odd?
+   (reduce +
+           (map #(crossing-number p %)
+                (concat (partition 2 1 poly)
+                        (list (list (last poly) (first poly))))))))
 
 ;;; I/O
 (defn lazy-tweets [f] 
@@ -75,31 +90,6 @@
 (defn tweet-stream [city]
   (map clj-json/parse-string (lazy-tweets (str in-dir "streaming_data/" city ".json"))))
 
-(defn save-grid [grid fname]
-  (with-open [wrt (clojure.java.io/writer (str fname ".grid"))]
-    (binding [*out* wrt]
-      (let [[lat lon side] (first (second grid))]
-        (println side))
-      (doseq [[tile ls] grid
-              :when tile
-              :let [[lat lon side] tile
-                   prt-tile (str lat " " lon)
-                   prt-ls (apply str (interpose " " (flatten (seq ls))))]]
-          (println (str prt-tile " | " prt-ls))))))
-
-(defn load-grid [grid-fn]
-  (let [grid (atom {})
-        lines (lazy-lines grid-fn)
-        side (parse-number (first lines))
-        pts (rest lines)]
-    (doseq [pt pts
-            :let [[tile ls] (map s/trim
-                                 (s/split pt #" \| "))
-                  [lon lat] (map parse-number (s/split tile #" "))
-                  ls-map (-> (apply hash-map (s/split ls #" "))                             
-                             (map-kv parse-number))]]
-      (swap! grid assoc [lon lat side] ls-map))
-    @grid))
 
 ;;; TWEET-MINING
 (defn tweet->lang
@@ -120,31 +110,31 @@
   "@tiles: [[x y w h] [x y w h] ...]
    @ps: [[lang [x y]] [lang [x y]] ...]
    @return: {[x y] {l1 n l2 m}, ...}"
-  [tiles ps]
-  (reduce (fn [result [l [px py]]]
-            (let [tile (first (filter (fn [[x y side]] (in-rect px py x y side side)) tiles))
-                  nested-d (or (result tile) {})]
-              (assoc result tile (update-in nested-d [l] (fnil inc 0)))))
-          {} ps))
+  ([tiles ps] (ps->grid tiles ps in-rect?))
+  ([tiles ps in-fn]
+   (reduce (fn [result [l [px py]]]
+             (let [tile (first (filter #(in-fn px py %) tiles))
+                   nested-d (or (result tile) {})]
+               (assoc result tile (update-in nested-d [l] (fnil inc 0)))))
+           {} ps)))
 
 (defn ps->grid2
   "@tiles: [[x y side] [x y side] ...]
    @ps: [[lang [x y]] [lang [x y]] ...]
    @return: {[x y] {l1 n l2 m}, ...}"
-  [tiles ps]
-  (let [aux
-        (fn [xs]
-          (let [result (atom {})]
-            (doseq [[l [px py]] xs]
-              (let [tile (first
-                          (filter (fn [[x y side]]
-                                    (in-rect px py x y side side)) tiles))]
-                (if (get-in @result [tile l])
-                  (swap! result update-in [tile l] (partial inc))
-                  (swap! result assoc-in [tile l] 1))))
-            @result))]
-    (reduce (fn [a b] (deep-merge-with + a b))
-            (pmap aux (partition-all 2000 ps)))))
+  ([tiles ps] (ps->grid tiles ps in-rect?))
+  ([tiles ps in-fn]
+   (let [aux
+         (fn [xs]
+           (let [result (atom {})]
+             (doseq [[l [px py]] xs]
+               (let [tile (first (filter #(in-fn px py %) tiles))]
+                 (if (get-in @result [tile l])
+                   (swap! result update-in [tile l] (partial inc))
+                   (swap! result assoc-in [tile l] 1))))
+             @result))]
+     (reduce (fn [a b] (deep-merge-with + a b))
+             (pmap aux (partition-all 2000 ps))))))
 
 (defn keep-langs
   [grid & ls]
@@ -175,6 +165,43 @@
         ps (for [tw (tweet-stream city)]
              [(tweet->lang tw) (tweet->coors tw)])]
     (ps->grid2 tiles (filter #(not (nil? (first %))) ps))))
+
+(defn fetch-ls
+  "returns a set of language from a grid"
+  ([grid] (fetch-ls grid 20))
+  ([grid min-count]
+   (conj (keys (filter (fn [[k v]]
+                         (> v min-count))
+                       (apply merge-with + (vals grid))))
+         "UN")))
+
+(defn save-grid [grid fname]
+  (with-open [wrt (clojure.java.io/writer (str fname ".grid"))]
+    (binding [*out* wrt]
+      (let [[lat lon side] (first (second grid))]
+        (println side))
+      (doseq [[tile ls] grid
+              :when tile
+              :let [[lat lon side] tile
+                   prt-tile (str lat " " lon)
+                   prt-ls (apply str (interpose " " (flatten (seq ls))))]]
+          (println (str prt-tile " | " prt-ls))))))
+
+(defn load-grid [grid-fn]
+  (let [grid (atom {})
+        lines (lazy-lines grid-fn)
+        side (parse-number (first lines))
+        pts (rest lines)]
+    (doseq [pt pts
+            :let [[tile ls] (map s/trim
+                                 (s/split pt #" \| "))
+                  [lon lat] (map parse-number (s/split tile #" "))
+                  ls-map (-> (apply hash-map (s/split ls #" "))                             
+                             (map-kv parse-number))]]
+      (swap! grid assoc [lon lat side] ls-map))
+    @grid))
+
+
 
 ;;; HOODS
 (defn fetch-hoods [cityfn]
