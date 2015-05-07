@@ -6,6 +6,7 @@
   :jvm-opts ["-Xmx4g"]
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/data.json "0.2.1"]
+                 [org.clojure/data.csv "0.1.2"]
                  [glgraphics "0.1"]
                  [json4proc "0.1"]
                  [log4j/log4j "1.2.17"]

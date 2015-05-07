@@ -1,0 +1,87 @@
+
+#+BEGIN_SRC clojure
+(time (def grid-t
+  (let [[min-lat min-lon max-lat max-lon] (boxes :brussels)
+        w (/ (- max-lat min-lat) nm)
+        h (/ (- max-lon min-lon) nm)
+        tiles (for [lat (range min-lat max-lat w)
+                    lon (range min-lon max-lon w)]
+                [lat lon w])
+        ps (for [tw (tweet-stream "brussels")
+                 :let [l (tweet->lang tw)]
+                 :when (some #{l} ["fr" "nl"])]
+             [l (tweet->coors tw)])]
+    (ps->grid tiles ps))))
+;; "Elapsed time: 477639.751 msecs"
+#+END_SRC
+
+#+BEGIN_SRC clojure
+(time (def grid-t
+  (let [[min-lat min-lon max-lat max-lon] (boxes :brussels)
+        w (/ (- max-lat min-lat) nm)
+        h (/ (- max-lon min-lon) nm)
+        tiles (for [lat (range min-lat max-lat w)
+                    lon (range min-lon max-lon w)]
+                [lat lon w])
+        ps (for [tw (tweet-stream "brussels")
+                 :let [l (tweet->lang tw)]
+                 :when (some #{l} ["fr" "nl"])]
+             [l (tweet->coors tw)])]
+    (ps->grid tiles (sort-by #(first (second %)) ps)))))
+;; "Elapsed time: 474977.151 msecs"
+
+(time (def s (doseq [tw (tweet-stream "brussels")
+                   :let [l (tweet->lang tw)]
+                   :when (some #{l} ["fr" "nl"])]
+               [l (tweet->coors tw)])))
+;; "Elapsed time: 33278.716 msecs"
+#+END_SRC
+
+#+BEGIN_SRC clojure
+(alembic.still/distill '[criterium "0.4.3"])
+(use 'criterium.core)
+(criterium.core/bench (reduce conj [] (take 1000 (tweet-stream "berlin"))))
+
+;; 
+WARNING: Final GC required 3.5751020311307733 % of runtime
+Evaluation count : 2760 in 60 samples of 46 calls.
+             Execution time mean : 19.962199 ms
+    Execution time std-deviation : 1.666170 ms
+   Execution time lower quantile : 18.670412 ms ( 2.5%)
+   Execution time upper quantile : 24.261972 ms (97.5%)
+                   Overhead used : 6.323209 ns
+
+Found 7 outliers in 60 samples (11.6667 %)
+	low-severe	 4 (6.6667 %)
+	low-mild	 3 (5.0000 %)
+ Variance from outliers : 61.8340 % Variance is severely inflated by outliers
+#+END_SRC
+
+# fn=ps->grid, nm=100, n-tweets=1000
+#+BEGIN_SRC clojure
+WARNING: Final GC required 1.017803344320604 % of runtime
+Evaluation count : 120 in 60 samples of 2 calls.
+             Execution time mean : 714.766077 ms
+    Execution time std-deviation : 25.263773 ms
+   Execution time lower quantile : 689.541582 ms ( 2.5%)
+   Execution time upper quantile : 785.422619 ms (97.5%)
+                   Overhead used : 6.323209 ns
+
+Found 2 outliers in 60 samples (3.3333 %)
+	low-severe	 2 (3.3333 %)
+ Variance from outliers : 22.1984 % Variance is moderately inflated by outliers
+#+END_SRC
+# fn=ps->grid2, nm=100, n-tweets=1000
+#+BEGIN_SRC clojure
+Evaluation count : 60 in 60 samples of 1 calls.
+             Execution time mean : 1.817445 sec
+    Execution time std-deviation : 159.471364 ms
+   Execution time lower quantile : 1.671798 sec ( 2.5%)
+   Execution time upper quantile : 2.193412 sec (97.5%)
+                   Overhead used : 6.323209 ns
+
+Found 3 outliers in 60 samples (5.0000 %)
+	low-severe	 2 (3.3333 %)
+	low-mild	 1 (1.6667 %)
+ Variance from outliers : 63.5709 % Variance is severely inflated by outliers
+#+END_SRC

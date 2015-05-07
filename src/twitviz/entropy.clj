@@ -8,14 +8,12 @@
   (:require [quil.middleware :as m]
             [twitviz.utils :as u]))
 
-(def nm 100)
 (def city "berlin")
-;; (def grid (u/create-grid nm city))
 (def grid (u/load-grid "resources/berlin100.grid"))
 
 (def max-range 
-  (let [langs (for [[xyz m] grid :when xyz] m)]
-    (apply max (map count langs))))
+  (let [ls (for [[xyz m] grid :when xyz] m)]
+    (apply max (map entropy ls))))
 
 (defn entropy 
   "input must be a vector of raw (count) frequencies"
@@ -31,16 +29,6 @@
                       Math/abs))))
          (reduce +))))
 
-(def max-range (entropy (repeat max-range 1))) 
-
-;; (defn lang->color 
-;;   [max-range ls]
-;;   (let [scaler (rescaler 0 max-range 0 255) 
-;;         r 255
-;;         g (scaler (count ls))
-;;         b 0]
-;;     [r g b]))
-
 (let [scaler (u/rescaler 0 max-range 0 255)]
   (defn lang->color [ls f]
     (let [r 255
@@ -50,26 +38,33 @@
 
 (def lang->color-memo (memoize lang->color))
 
+(defn draw-location
+  "draw coordinates at cursor"
+  [the-map]
+  (let [loc (.getLocation the-map (mouse-x) (mouse-y))]
+    (fill 0)
+    (text (str (.getLat loc) ", " (.getLon loc))
+          (mouse-x)
+          (mouse-y))))
+
 (defn setup []
   (let [the-map (UnfoldingMap. 
                  (quil.applet/current-applet) 
-;                 (de.fhpotsdam.unfolding.providers.Microsoft$HybridProvider.)
                  (de.fhpotsdam.unfolding.providers.StamenMapProvider$TonerBackground.))
-        center-lat (first ((keyword city) u/centers))
-        center-lon (second ((keyword city) u/centers))
-        location (Location. center-lat center-lon)]
+        loc (Location. (first ((keyword city) centers)) (second ((keyword city) centers)))]
     (MapUtils/createDefaultEventDispatcher (quil.applet/current-applet) [the-map])
         (set-state!
          :map (doto the-map
-                (.zoomAndPanTo location 14)
-                (.setPanningRestriction location 5.0)
+                (.zoomAndPanTo loc 14)
+                (.setPanningRestriction loc 5.0)
                 (.setZoomRange 12 18)
                 (.draw)))))
 
 (defn draw []
-  (let [the-map (state :map)
-        location (.getLocation the-map (mouse-x) (mouse-y))]
+  (let [the-map (state :map)]
     (.draw the-map)
+    ;; (draw-location grid)
+    (no-stroke)
     (doseq [[[x y side] ls] grid
             :when (and x y)] ;remove points outside the grid
       (let [pos1 (.getScreenPosition the-map (Location. x y))
@@ -78,9 +73,7 @@
             [r g b] (lang->color-memo (vals ls) entropy)]
         (no-stroke)
         (fill r g b 50)
-        (rect px py w h)))
-    (fill 0)
-    (text (str (.getLat location) ", " (.getLon location)) (mouse-x) (mouse-y))))
+        (rect px py w h)))))
 
 (defsketch mapping
   :title "Exploring Unfolding"

@@ -210,22 +210,24 @@ Theil's multigroup diversity index is bounded by zero and one.
                  :legend true))
 #+END_SRC
 
-- Pearson Correlation
 
 #+BEGIN_SRC clojure
-(correlation (map first (vals result-merged)) (map second (vals result-merged)))
+(count (flatten (repeat 2 (keys result-merged))))
+(count                  (mapcat (juxt first second) (vals result-merged)))
 #+END_SRC
-
 #+RESULTS:
-: 0.870187217188301
+: 2424
 
-- Spearman's Rho
 #+BEGIN_SRC clojure
-(spearmans-rho (map first (vals result-merged)) (map second (vals result-merged)))
+(def seasons (mapcat identity (repeat 3 ["winter" "spring" "summer" "fall"])))
+(def years (mapcat identity (repeat 4 [2007 2008 2009])))
+(def values (sample-uniform 12 :integers true :max 100))
+(view (bar-chart years values :group-by seasons :legend true))
 #+END_SRC
 
-#+RESULTS:
-: 0.8741258741258742
+#+BEGIN_SRC clojure
+(flatten (repeat 2 (keys result-merged)))
+#+END_SRC
 
 * Other
 ** Computing the dataframe
