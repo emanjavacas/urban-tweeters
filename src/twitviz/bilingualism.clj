@@ -12,13 +12,14 @@
 
 (def city "berlin")
 (def grid (load-grid (str "resources/" city ".grid")))
-(def ls-int (zipmap (fetch-ls grid 20) (range)))
+(def ls-int (zipmap (fetch-ls grid 150) (range)))
 (def int-ls (into {} (for [[k v] ls-int] [v k])))
 (def max-range 
   (let [langs (for [[xyz m] grid :when xyz :when m] m)]
     (apply max (mapcat vals langs))))
 (def gstate {:lang-1 (atom (first (keys ls-int)))
-             :lang-2 (atom (second (keys ls-int)))})
+             :lang-2 (atom (second (keys ls-int)))
+             :a (atom 0.03)})
 
 (defn sigmoid [a] ; doesn't need to compute the max-range
   (fn [x] (/ 1 (+ 1 (Math/exp (- (* a x)))))))
@@ -41,7 +42,7 @@
                 (zero? l2) 0
                 :else (* (/ l2 (+ l1 l2)) 255))
         b ;(scaler (Math/abs (- l1 l2)))
-        (* 255 ((sigmoid 0.03) (- l2 l1)))
+        (* 255 ((sigmoid @(:a gstate)) (- l2 l1)))
         ]
     [r g b]))
 
@@ -52,6 +53,14 @@
                        (let [newval (.getValue (.getGroup event))]
                          (reset! (key gstate) (get int-ls (int newval)))))))]
     (.addListener (.getGroup control id) listener)
+    listener))
+
+(defn add-slider-listener [control id key gstate]
+  (let [listener (reify ControlListener
+                   (controlEvent [this event]
+                     (let [newval (.getValue (.getController event))]
+                       (reset! (key gstate) (int newval)))))]
+    (.addListener (.getController control id) listener)
     listener))
 
 (defn draw-location
@@ -72,12 +81,14 @@
                  (de.fhpotsdam.unfolding.providers.StamenMapProvider$TonerBackground.))
         loc (Location. (first ((keyword city) centers))(second ((keyword city) centers)))
         control (ControlP5. (quil.applet/current-applet))
-        ddl1 (doto (.addDropdownList control "lang-1" 725 10 30 280)
+        ddl1 (doto (.addDropdownList control "lang-1" 725 10 30 300)
                (set-items ls-int))
-        ddl2 (doto (.addDropdownList control "lang-2" 760 10 30 280)
-               (set-items ls-int))]
+        ddl2 (doto (.addDropdownList control "lang-2" 760 10 30 300)
+               (set-items ls-int))
+        sldr (doto (.addSlider control "slider" -5 5 0.03 730 570 50 20))]
     (add-ddl-listener control "lang-1" :lang-1 gstate)
     (add-ddl-listener control "lang-2" :lang-2 gstate)
+    (add-slider-listener control "slider" :a gstate)
     (MapUtils/createDefaultEventDispatcher
      (quil.applet/current-applet) [the-map])
     (set-state!
@@ -109,3 +120,4 @@
   :draw draw
   :size [800 600]
   :renderer :opengl)
+

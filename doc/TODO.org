@@ -1,6 +1,7 @@
 * Bots
-- Automatically check for bots (by setting threshold on the /statuses_count/ field and then display language statistics
-- Check against known bot-statistics (is there any diffs between georef and non-georef bots)
+** Filtering 
+ - Automatically check for bots (by setting threshold on the /statuses_count/ field and then display language statistics
+ - Check against known bot-statistics (is there any diffs between georef and non-georef bots)
 
 * Tourists
 - Discussion:

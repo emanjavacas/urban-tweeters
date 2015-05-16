@@ -8,7 +8,6 @@
             [clj-json.core :as clj-json]))
 
 ;;; CONSTANTS
-(def in-f "/Users/quique/data/tweets.json")
 (def in-dir "/Users/quique/data/")
 
 (def centers
@@ -135,7 +134,7 @@
   ([[min-x min-y max-x max-y] nm ps]
    (let [w (/ (- max-x min-x) nm)
          h (/ (- max-y min-y) nm)]
-     (make-squared-grid [min-x min-y max-x max-y] w h ps)))
+     (make-square-grid [min-x min-y max-x max-y] w h ps)))
   ([[min-x min-y max-x max-y] w h ps]
    (let [xs (double-array (range min-x max-x w))
          ys (double-array (range min-y max-y h))]

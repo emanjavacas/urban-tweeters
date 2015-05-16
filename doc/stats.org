@@ -10,8 +10,8 @@
             [incanter
              [core :refer :all]
              [charts :refer :all]
-             [stats :refer :all]
-             [datasets :refer :all]]))
+             [stats :refer :all]]))
+;             [datasets :refer :all]]))
 #+END_SRC
 
 #+BEGIN_SRC clojure :results silent
@@ -40,8 +40,31 @@
                              (map-kv parse-number))]]
       (swap! grid assoc [lon lat w h] ls-map))
     @grid))
+
+(defn deep-map-to-dense
+  "transforms a nested map representation
+  into dense matrix form updating zeros"
+  ([m] (let [ks (->> (vals m)
+                 (mapcat keys)
+                 (into #{}))]
+     (deep-map-to-dense m ks)))
+  ([m ks] (reduce-kv (fn [acc k v]
+                (let [new-v (zipmap ks (map #(get v % 0) ks))]
+                  (assoc-in acc [k] new-v)))
+              {}
+              m)))	      
 #+END_SRC
 
+#+BEGIN_SRC clojure
+(defn map-to-dense [m ks]
+  (reduce (fn [acc k]
+            (assoc acc k (get m k 0)))
+          {}
+          ks))
+#+END_SRC
+
+#+RESULTS:
+: #'twitviz.stats/map-to-dense
 
 * Implementation of Theil multigroup entropy index
 
@@ -151,9 +174,9 @@ Theil's multigroup diversity index is bounded by zero and one.
 #+END_SRC
 
 #+RESULTS:
-: (440 453 439 480 553 488 348 242 280 451 473 355)270043
+| 440 | 453 | 439 | 480 | 553 | 488 | 348 | 242 | 280 | 451 | 473 | 355 |
 
-- The total number of points in which the computation is based.
+1) The total number of points in which the computation is based.
 #+BEGIN_SRC clojure
 (reduce + (mapcat vals (mapcat vals (vals berlin-by-hood))))
 #+END_SRC
@@ -203,6 +226,7 @@ Theil's multigroup diversity index is bounded by zero and one.
  "Marzahn-Hellersdorf"        [0.9395921710538039 0.8818968964340289]}
 #+end_example
 
+--- barplot
 #+BEGIN_SRC clojure :results silent
 (view (bar-chart (mapcat identity (repeat 2 (keys result-merged)))
                  (concat (map first (vals result-merged)) (map second (vals result-merged)))
@@ -210,24 +234,152 @@ Theil's multigroup diversity index is bounded by zero and one.
                  :legend true))
 #+END_SRC
 
+--- scatterplot
+#+BEGIN_SRC clojure
+(def correlation-scatter (scatter-plot (map first (vals result-merged))
+                                       (map second (vals result-merged))))
+(view correlation-scatter)
+#+END_SRC
+
+#+RESULTS:
+: #'twitviz.stats/correlation-scatter#<ChartFrame org.jfree.chart.ChartFrame[frame1,0,22,500x400,layout=java.awt.BorderLayout,title=Incanter Plot,resizable,normal,defaultCloseOperation=DISPOSE_ON_CLOSE,rootPane=javax.swing.JRootPane[,0,22,500x378,layout=javax.swing.JRootPane$RootLayout,alignmentX=0.0,alignmentY=0.0,border=,flags=16777673,maximumSize=,minimumSize=,preferredSize=],rootPaneCheckingEnabled=true]>
 
 #+BEGIN_SRC clojure
 (count (flatten (repeat 2 (keys result-merged))))
-(count                  (mapcat (juxt first second) (vals result-merged)))
+(count (mapcat (juxt first second) (vals result-merged)))
 #+END_SRC
 #+RESULTS:
 : 2424
 
 #+BEGIN_SRC clojure
-(def seasons (mapcat identity (repeat 3 ["winter" "spring" "summer" "fall"])))
-(def years (mapcat identity (repeat 4 [2007 2008 2009])))
-(def values (sample-uniform 12 :integers true :max 100))
-(view (bar-chart years values :group-by seasons :legend true))
+(flatten (repeat 2 (keys result-merged)))
+#+END_SRC
+
+* Association measures (language-district)
+
+- load the data  
+#+BEGIN_SRC clojure :results silent
+(def berlin-by-hood (frm-load "berlin_by_polys_light.tweets"))
+#+END_SRC
+
+- langs 
+#+BEGIN_SRC clojure
+(def langs
+  (->> (vals berlin-by-hood)
+       (mapcat vals)
+       (mapcat keys)
+       (into #{})))
+#+END_SRC
+
+#+RESULTS:
+: #'twitviz.stats/langs
+
+#+BEGIN_SRC clojure
+(count langs)
+#+END_SRC
+
+#+RESULTS:
+: 41
+
+- hoods
+#+BEGIN_SRC clojure
+(def hoods (keys berlin-by-hood))
+#+END_SRC
+
+#+RESULTS:
+: #'twitviz.stats/hoods
+
+- aggregate langs by neighbourhood
+#+BEGIN_SRC clojure
+(def langs-by-hood
+  (reduce-kv (fn [acc k v]
+               (let [counts (flatten (vals v))
+                     new-v (apply merge-with + counts)]
+                 (assoc-in acc [k] new-v)))
+             {}
+             berlin-by-hood))
+#+END_SRC
+
+#+RESULTS:
+: #'twitviz.stats/langs-by-hood
+
+# dataframe with district as class and counts by cell instead of district
+#+BEGIN_SRC clojure
+(def langs-by-hood-grid
+  (into [] (for [[district grid] berlin-by-hood
+                 [k ls] grid]
+             [district (map-to-dense ls langs)])))
+#+END_SRC
+
+
+#+BEGIN_SRC clojure
+(map keys (vals langs-by-hood))
+#+END_SRC
+
+#+RESULTS:
+| nl | pt | en | lv | cy | zh | ro | tr | it | el | fa | is | id | uk | pl | fi | ca | sv | sl | fr | kn | da | de | ru | sk | es | ja | cs | no | ar | bg | ko | th |    |    |    |    |    |    |
+| nl | pt | en | lv | ur | ro | tr | it | fa | uk | pl | fi | ca | sv | hr | sl | fr | de | ru | es | ja | cs | ar | th |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |
+| nl | pt | en | lv | lt | ur | zh | tr | it | el | fa | vi | id | pl | fi | ca | sv | hr | sl | fr | da | hu | de | ru | es | ja | cs | no | ar | ko | th |    |    |    |    |    |    |    |    |
+| nl | pt | en | lv | lt | ur | zh | ro | hy | tr | it | el | fa | is | vi | id | uk | pl | fi | ca | sv | hr | sl | fr | da | hu | de | hi | ru | sk | es | ja | et | cs | no | ar | bg | ko | th |
+| nl | pt | en | lv | zh | tr | it | el | id | pl | fi | ca | sv | sl | fr | da | hu | de | hi | ru | sk | es | ja | cs | ar | ko | th |    |    |    |    |    |    |    |    |    |    |    |    |
+| nl | pt | en | ur | zh | ro | tr | it | el | fa | vi | id | uk | pl | fi | sv | fr | da | de | ru | es | ja | cs | no | ar | bg | ko | th |    |    |    |    |    |    |    |    |    |    |    |
+| nl | pt | en | lv | ur | tr | it | el | fa | id | pl | fi | ca | sv | sl | fr | da | de | hi | ru | es | ja | et | no | ar | ko |    |    |    |    |    |    |    |    |    |    |    |    |    |
+| nl | pt | en | lv | ur | cy | zh | ro | tr | it | el | fa | is | id | uk | pl | fi | ca | sv | sl | fr | da | hu | de | ru | sk | es | ja | et | cs | no | ar | ko | th |    |    |    |    |    |
+| nl | pt | en | lv | tr | it | el | vi | id | pl | fi | ca | sv | fr | da | de | hi | ru | es | ja | no | ar | bg | ko |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |
+| nl | pt | en | lv | ur | zh | ro | tr | it | el | fa | id | pl | fi | ca | sv | fr | da | hu | de | hi | ru | es | ja | no | ar | bg | ko | th |    |    |    |    |    |    |    |    |    |    |
+| nl | pt | en | tr | it | el | vi | uk | pl | fi | ca | sv | fr | da | hu | de | ru | es | ja | ar | th |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |
+| nl | pt | en | lv | ro | tr | it | id | uk | pl | sv | fr | de | ru | es | ja | cs | ar | ko |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |
+
+
+#+BEGIN_SRC clojure
+(map keys (vals (deep-map-to-dense langs-by-hood)))
+#+END_SRC
+
+#+RESULTS:
+| nl | pt | en | lv | lt | ur | cy | zh | ro | hy | tr | it | el | fa | is | vi | id | uk | pl | fi | ca | sv | hr | sl | fr | kn | da | hu | de | hi | ru | sk | es | ja | et | cs | no | ar | bg | ko | th |
+| nl | pt | en | lv | lt | ur | cy | zh | ro | hy | tr | it | el | fa | is | vi | id | uk | pl | fi | ca | sv | hr | sl | fr | kn | da | hu | de | hi | ru | sk | es | ja | et | cs | no | ar | bg | ko | th |
+| nl | pt | en | lv | lt | ur | cy | zh | ro | hy | tr | it | el | fa | is | vi | id | uk | pl | fi | ca | sv | hr | sl | fr | kn | da | hu | de | hi | ru | sk | es | ja | et | cs | no | ar | bg | ko | th |
+| nl | pt | en | lv | lt | ur | cy | zh | ro | hy | tr | it | el | fa | is | vi | id | uk | pl | fi | ca | sv | hr | sl | fr | kn | da | hu | de | hi | ru | sk | es | ja | et | cs | no | ar | bg | ko | th |
+| nl | pt | en | lv | lt | ur | cy | zh | ro | hy | tr | it | el | fa | is | vi | id | uk | pl | fi | ca | sv | hr | sl | fr | kn | da | hu | de | hi | ru | sk | es | ja | et | cs | no | ar | bg | ko | th |
+| nl | pt | en | lv | lt | ur | cy | zh | ro | hy | tr | it | el | fa | is | vi | id | uk | pl | fi | ca | sv | hr | sl | fr | kn | da | hu | de | hi | ru | sk | es | ja | et | cs | no | ar | bg | ko | th |
+| nl | pt | en | lv | lt | ur | cy | zh | ro | hy | tr | it | el | fa | is | vi | id | uk | pl | fi | ca | sv | hr | sl | fr | kn | da | hu | de | hi | ru | sk | es | ja | et | cs | no | ar | bg | ko | th |
+| nl | pt | en | lv | lt | ur | cy | zh | ro | hy | tr | it | el | fa | is | vi | id | uk | pl | fi | ca | sv | hr | sl | fr | kn | da | hu | de | hi | ru | sk | es | ja | et | cs | no | ar | bg | ko | th |
+| nl | pt | en | lv | lt | ur | cy | zh | ro | hy | tr | it | el | fa | is | vi | id | uk | pl | fi | ca | sv | hr | sl | fr | kn | da | hu | de | hi | ru | sk | es | ja | et | cs | no | ar | bg | ko | th |
+| nl | pt | en | lv | lt | ur | cy | zh | ro | hy | tr | it | el | fa | is | vi | id | uk | pl | fi | ca | sv | hr | sl | fr | kn | da | hu | de | hi | ru | sk | es | ja | et | cs | no | ar | bg | ko | th |
+| nl | pt | en | lv | lt | ur | cy | zh | ro | hy | tr | it | el | fa | is | vi | id | uk | pl | fi | ca | sv | hr | sl | fr | kn | da | hu | de | hi | ru | sk | es | ja | et | cs | no | ar | bg | ko | th |
+| nl | pt | en | lv | lt | ur | cy | zh | ro | hy | tr | it | el | fa | is | vi | id | uk | pl | fi | ca | sv | hr | sl | fr | kn | da | hu | de | hi | ru | sk | es | ja | et | cs | no | ar | bg | ko | th |
+
+### Not run
+#+BEGIN_SRC clojure
+(with-open [wrt (clojure.java.io/writer "test.json")]
+  (json/write (deep-map-to-dense langs-by-hood) wrt :escape-unicode false)) 
 #+END_SRC
 
 #+BEGIN_SRC clojure
-(flatten (repeat 2 (keys result-merged)))
+(with-open [wrt (clojure.java.io/writer "test_grid.json")]
+  (.write wrt (apply str (interpose "," (flatten ["district" (vec langs) "\n"]))))
+  (doseq [[district m] langs-by-hood-grid]
+    (.write wrt (apply str (interpose "," (flatten [district (map (partial get m) langs) "\n"]))))))
 #+END_SRC
+
+#+RESULTS:
+: nil
+
+** R analysis
+ #+BEGIN_SRC R
+library(RJSONIO)
+data <- as.data.frame(fromJSON("~/code/clojure/twitviz/test.json"))
+ #+END_SRC
+
+#+BEGIN_SRC R
+data <- read.csv("~/code/clojure/twitviz/test_grid.json", header=T)
+data <- data[,c(1:ncol(data)-1)]
+#+END_SRC
+
+#+BEGIN_SRC R
+pvals <- data.frame(lang=colnames(data)[2:ncol(data)], pval=sapply(c(2:ncol(data)), function(x) chisq.test(data[,x], data$district)$p.value))
+#+END_SRC
+
 
 * Other
 ** Computing the dataframe
