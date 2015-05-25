@@ -4,26 +4,39 @@
             [my-utils.syntax :refer :all]
             [my-utils.io :refer [lazy-lines parse-number frm-save]]
             [clojure.data.json :as json]
-            [clojure.core.reducers :as r]
-            [clj-json.core :as clj-json]))
+            [clj-json.core :as clj-json];fast json reader            
+;            [clojure.core.reducers :as r]
+            [clj-time.core :as time]
+            [clj-time.format :as format]))
 
 ;;; CONSTANTS
-(def in-dir "/Users/quique/data/")
-
 (def centers
   {:berlin [52.516042 13.390245]
    :amsterdam [52.370292 4.900077] 
    :antwerp [51.220763 4.401598] 
    :brussels [50.844625 4.352359] 
-   :nyc [40.725913 -73.98672]})
-
+;   :nyc [40.725913 -73.98672]
+   })
+(second (clojure.string/split (str :a) #":"))
 (def boxes
   {:berlin  [52.33963 13.089155 52.675454 13.761118]
    :amsterdam [52.327927 4.789967 52.426971 4.976362]
    :antwerp [51.113175 4.245066 51.323395 4.611823]
    :brussels [50.745668 4.208164 50.942552 4.562496]})
 
+(def bots
+  {:berlin [112169930, 1212442812, 1336218432, 1597521211, 160874621, 161262801, 186899860, 288715859,
+            71528370, 81237494, 2309807226, 343197788, 352734759, 422055979, 436016601, 456864067]})
+
+(def grids
+  {"berlin_night" "resources/berlin_night_clean50.grid"
+   "berlin_day" "resources/berlin_day_clean50.grid"
+   "berlin" "resources/berlin_clean50.grid"
+   "antwerp" "resources/antwerp.grid"})
+
 ;;; GENERAL
+(defn dekey [k] (second (clojure.string/split (str k) #":")))
+
 (defn all-but-n
   "return the element ocurring at least k-n times
   where k is the length of coll"
@@ -42,6 +55,17 @@
     (+ new-min (/ (* (- new-max new-min)
                      (- x min))
                   (- max min)))))
+
+(defn night? [date-str start end]
+  (let [date (format/parse (format/formatter "EEE MMM dd HH:mm:ss Z yyyy") date-str)
+        hour (time/hour date)]
+    (or (>= hour start) (<= hour end))))
+
+(defn tweet->night? [t]
+  (night? (get t "created_at") 22 7))
+
+(defn sigmoid [a] ; doesn't need to compute the max-range
+  (fn [x] (/ 1 (+ 1 (Math/exp (- (* a x)))))))
 
 ;;; GEOMETRY
 (defn in-rect?
@@ -76,18 +100,21 @@
                         (do (.close rdr) nil))))]
     (helper (io/reader f))))
 
-(defn tweet-stream [city]
-  (map clj-json/parse-string
-       (lazy-tweets (str in-dir "streaming_data/" city ".json"))))
+(def in-dir "/Users/quique/data/")
+(defn tweet-stream [city & ids]
+  (let [tweets (map clj-json/parse-string
+                    (lazy-tweets (str in-dir "streaming_data/" city ".json")))]
+    (if (not ids) tweets (filter #(not (apply some #{(get-in % ["user" "id"])} ids)) tweets))))
+
+(defn x [a & b]
+  (class b))
 
 ;;; TWEET-MINING
 (defn tweet->lang
-  "extract language guesses (new-format)"
+  "extract language guesses"
   [t]
   (let [{l "langs"} t]
-    (try
-      (all-but-n (vals l))
-      (catch Exception e (println t)))))
+    (all-but-n (vals l))))
 
 (defn tweet->coors
   "extract coors and invert their order to catch up with twitter"
@@ -163,15 +190,6 @@
 ;;                              ps)))
 ;;           polys)))
 
-;; (def ps (for [tw (tweet-stream "berlin") :when (tweet->lang tw)] ((juxt tweet->coors tweet->lang) tw)))
-;; (def berlin (load-grid "resources/berlin.grid"))
-;; (def berlin-hoods (fetch-hoods "berlin"))
-;; (def berlin-by-polys (tiles->polys berlin berlin-hoods))
-;; (frm-save "berlin_by_polys" berlin-by-polys)
-;; (def berlin-hoods-light (fetch-hoods "berlin-light"))
-;; (def berlin-by-polys-light (tiles->polys berlin berlin-hoods-light))
-;; (frm-save "berlin_by_polys_light" berlin-by-polys-light)
-
 (defn tiles->polys [grid polys]
   (reduce #(deep-merge-with + % %2)
           (for [{:keys [meta geometry]} polys
@@ -179,7 +197,7 @@
                 :when (inside? [(+ (/ w 2) x) (+ (/ h 2) y)] geometry)]
             {meta {[x y w h] v}})))
 
-(defn save-grid [grid fname]
+(defn save-grid [fname grid]
   (with-open [wrt (clojure.java.io/writer (str fname ".grid"))]
     (binding [*out* wrt]
       (let [[lat lon w h] (first (second grid))]
@@ -206,6 +224,11 @@
       (swap! grid assoc [lon lat w h] ls-map))
     @grid))
 
+(defn fetch-grid [s]
+  (cond (.exists (clojure.java.io/as-file s)) (load-grid s)
+        (get grids s) (load-grid (get grids s))
+        :else nil))
+
 (defn fetch-hoods [city]
   (let [cities {"berlin" "resources/hoods/berlin.geojson"
                 "berlin-light" "resources/hoods/berlin.json"
@@ -227,3 +250,44 @@
                           (apply merge-with + (vals grid))))]
      (conj ls "UN"))))
 
+;;;;;;;;;
+;;; MAKE NIGHT BOT-FREE GRID
+;; (def ps-night (for [tw (tweet-stream "berlin_50" (:berlin bots))
+;;                     :when (and (tweet->lang tw) (tweet->night? tw))]
+;;                 ((juxt tweet->coors tweet->lang) tw))) 
+;; (def berlin-night (make-square-grid (:berlin boxes) 100 ps-night))
+;; (save-grid "berlin_night_clean50" berlin-night)
+
+;;; MAKE DAY BOT-FREE GRID
+;; (def ps-day (for [tw (tweet-stream "berlin_50" (:berlin bots))
+;;                   :when (and (tweet->lang tw) (not (tweet->night? tw)))]
+;;                 ((juxt tweet->coors tweet->lang) tw))) 
+;; (def berlin-day (make-square-grid (:berlin boxes) 100 ps-day))
+;; (save-grid "berlin_day_clean50" berlin-day)
+
+;;; MAKE TOTAL BOT-FREE GRID
+;; (def ps (for [tw (tweet-stream "berlin_50" (:berlin bots))
+;;               :when (and (tweet->lang tw))]
+;;           ((juxt tweet->coors tweet->lang) tw))) 
+;; (def berlin (make-square-grid (:berlin boxes) 100 ps))
+;; (save-grid "berlin_clean50" berlin)
+;; (def x (load-grid "berlin_clean50.grid"))
+;; (first x)
+;; (first berlin)
+;; ;;; 
+;; (def by-hours
+;;   (frequencies
+;;    (map #(time/hour
+;;           (format/parse (format/formatter "EEE MMM dd HH:mm:ss Z yyyy") (get % "created_at")))
+;;         (tweet-stream "berlin_50"))))
+;; (sort-by first by-hours)
+
+
+;;; RUN HOODS
+;; (def berlin (load-grid "resources/berlin.grid"))
+;; (def berlin-hoods (fetch-hoods "berlin"))
+;; (def berlin-by-polys (tiles->polys berlin berlin-hoods))
+;; (frm-save "berlin_by_polys" berlin-by-polys)
+;; (def berlin-hoods-light (fetch-hoods "berlin-light"))
+;; (def berlin-by-polys-light (tiles->polys berlin berlin-hoods-light))
+;; (frm-save "berlin_by_polys_light" berlin-by-polys-light)

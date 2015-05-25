@@ -15,4 +15,8 @@
                  [clj-json "0.5.3"]
                  [my-utils "0.1"]
                  [incanter "1.9.0"]
-                 [controlP5 "2.0.4"]])
+                 [controlP5 "2.0.4"]
+                 [org.clojure/tools.cli "0.3.1"]
+                 [clj-time "0.9.0"]]
+  :main twitviz.main
+  :aot [twitviz.main])

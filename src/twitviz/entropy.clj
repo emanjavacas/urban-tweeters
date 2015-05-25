@@ -2,11 +2,9 @@
   (:import [de.fhpotsdam.unfolding UnfoldingMap]
            [de.fhpotsdam.unfolding.utils MapUtils]
            [de.fhpotsdam.unfolding.geo Location]
-           [de.fhpotsdam.unfolding.marker SimplePointMarker]
            [de.fhpotsdam.unfolding.providers StamenMapProvider Microsoft])
   (:use quil.core)
-  (:require [quil.middleware :as m]
-            [twitviz.utils :as u]))
+  (:require [twitviz.utils :as u]))
 
 (def city "berlin")
 (def grid (u/load-grid "resources/berlin100.grid"))
