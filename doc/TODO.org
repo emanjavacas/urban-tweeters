@@ -15,3 +15,6 @@
 * Visualization
 - Distributions:
   - Implement segregation dissimilarity measure (ranges from 0 to 2)
+
+* Penetration rate 
+ratio between the number of Twitter users and the population of a country

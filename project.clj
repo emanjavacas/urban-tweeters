@@ -1,4 +1,4 @@
-(defproject twitproj "0.1.0-SNAPSHOT"
+(defproject twitviz "0.1.0-SNAPSHOT"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
@@ -14,9 +14,8 @@
                  [unfolding "0.9.6"]
                  [clj-json "0.5.3"]
                  [my-utils "0.1"]
-                 [incanter "1.9.0"]
                  [controlP5 "2.0.4"]
-                 [org.clojure/tools.cli "0.3.1"]
-                 [clj-time "0.9.0"]]
-  :main twitviz.main
-  :aot [twitviz.main])
+                 [clj-time "0.9.0"]
+                 [seesaw "1.4.5"]]
+  :main twitviz.menu
+  :aot [twitviz.menu])

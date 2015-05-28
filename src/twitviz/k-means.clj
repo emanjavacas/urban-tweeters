@@ -1,9 +1,9 @@
 (ns twitviz.k-means)
 
 (defn great-circle-distance
+  "gettingclojure.wikidot.com/cookbook:numbers"
   ([[lat1 long1] [lat2 long2]] (great-circle-distance lat1 long1 lat2 long2 6371.009))
   ([[lat1 long1] [lat2 long2] radius]
-   "gettingclojure.wikidot.com/cookbook:numbers"
      (let [[lat1-r long1-r lat2-r long2-r]
            (map #(Math/toRadians %) [lat1 long1 lat2 long2])]
        (* radius
@@ -45,12 +45,7 @@
   ([a b] (reduce + (map #(Math/abs %) (map - a b)))))
 (defmethod abs-dist [Long Long] ([a b] (Math/abs (- a b))))
 
-(abs-dist [1 2 3] [2 1 3])
-(abs-dist 1 2)
-
 (defn iterate-step [centroids] (update-centroids data centroids abs-dist))
 
-(def data '([2 3] [5 6] [10 11] [100 101] [1 102]))
-(take 2 (iterate iterate-step [[0 10] [3 5]]))
-
-(sort-by #(abs-dist % [0 1]) data)
+;; (def data '([2 3] [5 6] [10 11] [100 101] [1 102]))
+;; (take 2 (iterate iterate-step [[0 10] [3 5]]))
