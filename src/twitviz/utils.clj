@@ -18,7 +18,7 @@
 (defn find-size
   "find size of a given file in kilobytes"
   [fname]
-  (let [size (.length (io/file fname))
+  (let [size (.getContentLength (.openConnection (io/resource fname)))
         kbs (float (/ size (* 1024 1)))]
     (format "%.3fK" kbs)))
 
@@ -26,7 +26,7 @@
   "find last modified date of a file"
   ([fname] (find-last fname "MM/dd/yyyy HH:mm:ss"))
   ([fname format]
-   (let [date (java.util.Date. (.lastModified (clojure.java.io/file fname)))
+   (let [date (java.util.Date. (.getLastModified (.openConnection (io/resource fname))))
          formatter (java.text.SimpleDateFormat. format)]
      (.format formatter date))))
 
@@ -106,13 +106,30 @@
   (let [[y x] (get-in t ["coordinates" "coordinates"])]
     [x y]))
 
-;;; Operations on grid
+;; ;;; Operations on grid
+;; (defn load-grid
+;;   "loads the grid according to the specification 
+;;   given by twitviz.make-grid/save-grid"
+;;   [grid-fn]
+;;   (let [grid (atom {})
+;;         lines (lazy-lines grid-fn)
+;;         w (parse-number (first lines))
+;;         h (parse-number (second lines))
+;;         pts (drop 2 lines)]
+;;     (doseq [pt pts
+;;             :let [[tile ls] (map s/trim (s/split pt #" \| "))
+;;                   [lon lat] (map parse-number (s/split tile #" "))
+;;                   ls-map (-> (apply hash-map (s/split ls #" "))                             
+;;                              (map-kv parse-number))]]
+;;       (swap! grid assoc [lon lat w h] ls-map))
+;;     @grid))
+
 (defn load-grid
   "loads the grid according to the specification 
   given by twitviz.make-grid/save-grid"
   [grid-fn]
   (let [grid (atom {})
-        lines (lazy-lines grid-fn)
+        lines (s/split (slurp (io/resource grid-fn)) #"\n")
         w (parse-number (first lines))
         h (parse-number (second lines))
         pts (drop 2 lines)]

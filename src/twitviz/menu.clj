@@ -3,17 +3,35 @@
   (:require [seesaw.core :refer :all]
             [seesaw.swingx :refer :all]
             [seesaw.table :refer [value-at]]
-            [twitviz.utils :refer [find-size find-city find-last load-grid fetch-ls max-range max-lang entropy]]
+            [twitviz.utils :refer [find-size find-city find-last load-grid
+                                   fetch-ls max-range max-lang entropy]]
             [twitviz.data :refer [grids get-description]]
             [quil.core :refer [defsketch]]
             [twitviz.protocols])
   (:gen-class))
 
+(native!)
+
 (def app-data
   "define init values for the visualization. Given values are default."
   {:width (atom 800) :height (atom 600) :filter (atom 50) :loc? (atom true)
-   :protocol (atom :multilingual) :mode (atom :count)
+   :protocol (atom :monolingual) :mode (atom :count)
    :gridfn (atom (first grids))})
+
+;; (defn run2 []
+;;   (alert (apply str (map deref (vals app-data)))))
+
+(defn app->text [app-data]
+  (let [to->name {:width "Width" :height "Height" :filter "Minimum tweets per language"
+                  :loc? "Show location?" :protocol "Visualization mode"
+                  :mode "Aggregating function" :gridfn "Grid file"}
+        data-map (zipmap (map #(str "<b>" (% to->name) "</b>") (keys app-data)) (map deref (vals app-data)))]
+    (apply str (flatten ["<html>" (interpose "<br>" (map #(interpose ": " %) data-map))  "<html>"]))))
+
+(defn to->boolean [s]
+  (case s
+    "true" true
+    "false" false))
 
 (defn run-twitviz [{:keys [width height filter loc? protocol mode gridfn]}]
   (let [grid (load-grid @gridfn)
@@ -26,14 +44,13 @@
         gstate2 {:lang1 (atom (first ls-idx)) :lang2 (atom (second ls-idx))
                  :alpha (atom 50) :beta (atom 0.03) :map (atom nil)}
         gstate3 {:mode mode :alpha (atom 50) :beta (atom 0.03) :map (atom nil)}
-        monolingual  (Monolingualism.  grid city 640 480 @loc? gstate1 ls-idx max-ls)
-        bilingual    (Bilingualism.    grid city 640 480 @loc? gstate2 ls-idx)
-        multilingual (Multilingualism. grid city 700 600 @loc? gstate3 modes)
+        monolingual  (Monolingualism.  grid city @width @height @loc? gstate1 ls-idx max-ls)
+        bilingual    (Bilingualism.    grid city @width @height @loc? gstate2 ls-idx)
+        multilingual (Multilingualism. grid city @width @height @loc? gstate3 modes)
         target     (case @protocol
                      :monolingual monolingual 
                      :bilingual   bilingual 
                      :multilingual multilingual)]
-    (println "INIT!")
     (defsketch TwitViz
       :title (str "Displaying " city)
       :setup (twitviz.protocols/make-setup target)
@@ -55,12 +72,18 @@
    ["Click on run in order to start the application."
     "<i>You can also select the desired setup in the menu on the left handside</i>."]
    (vertical-panel
+    :id :init-menu
     :items [(button
              :text "Run!"
              :mnemonic \R
-             :halign :center :valign :center
+             :halign :leading :valign :center
              :selected? false
-             :listen [:action (fn [e] (run-twitviz app-data))])])))
+             :listen [:action (fn [e] (run-twitviz app-data))])
+            :separator
+            (header
+             :title "Selected settings"
+             :id :selected-settings
+             :description (app->text app-data))])))
 
 (def descriptions
   (titled-panel
@@ -76,7 +99,7 @@
   (scrollable
    (table-x
     :id :files-table
-    :model [:columns [:city :file :size]
+    :model [:columns [:city :file :size :last]
             :rows  (map (fn [g]
                           (zipmap [:city :file :size :last]
                                   ((juxt find-city identity find-size find-last) g)))
@@ -84,13 +107,19 @@
     :horizontal-scroll-enabled? true
     :selection-mode :single)))
 
+(def input-file
+  (border-panel
+   :west (label-x :text "Insert path to grid file" :wrap-lines? true)
+   :center (text :text "" :listen [:action (fn [e] (reset! (:gridfn app-data) (text e)))])))
+
 (def grid-files
   (explorer-content
    "Available Grid files"
    ["<i>A description of the selected grid file is being shown below</i>."
     "<i>The selected file will be used for the visualization after initializing it from the <b>Init menu</b>"]
    (vertical-panel
-    :items [files-table :separator descriptions])))
+    :items [files-table :separator descriptions ;input-file
+            ])))
 
 (defn create-widget [id desc-text widget-type parse-fn & model]
   (let [head (label-x :text (apply str (rest (str id))) :wrap-lines? true :font "ARIAL-BOLD-15")
@@ -118,7 +147,7 @@
               [:filter "This sets a lower bound of tweets for the considered languages"
                :combobox #(Integer/valueOf %) 0 10 25 50 100]
               [:loc? "Display the coordenates of the mouse"
-               :combobox boolean "true" "false"]])))))
+               :combobox to->boolean "true" "false"]])))))
 
 (def viz-mode
   (explorer-content
@@ -157,7 +186,7 @@
             :divider-location 1/4)))
 
 (defn create []
-  (border-panel))
+  (border-panel :center (label-x :text "To do...")))
 
 (defn make-frame []
   (frame :title "TwitViz"
@@ -177,9 +206,12 @@
         descriptions (select root [:#descriptions])]
     (listen leftmenu :selection
             (fn [e]
-              (replace! rightmenu
-                        (select rightmenu [:#explorer-content])
-                        (explorer-settings (selection leftmenu)))))
+              (let [new-right (explorer-settings (selection leftmenu))]
+                (if-let [selected-settings (select new-right [:#selected-settings])]
+                  (config! selected-settings :description (app->text app-data)))
+                (replace! rightmenu
+                          (select rightmenu [:#explorer-content])
+                          new-right))))
     (listen files-table :selection
             (fn [e]
               (let [newval (:file (value-at files-table (selection files-table)))]
