@@ -18,7 +18,7 @@ The menu frame allows selecting the specific settings in which the visualization
 
 Settings are best navigated using the panel on the left handside of the menu.
 
-[[./img/init_menu]]
+[[./img/init_menu.png]]
 
 *** Grid files
 The visualization doesn't rely on the actual tweet data (which would be quite computationally heavy) but rather on 
@@ -41,7 +41,7 @@ It doesn't affect the application behaviour when running on monolingual mode.
 *** Visualization mode
 There are three types of visualization.
 
-[[./img/berlin]]
+[[./img/berlin.png]]
 
 **** Monolingual
      
@@ -111,12 +111,12 @@ This consisted on selectively retrieve tweets for the known ids. Using the [[htt
 Language detection was carried out following [ref]. They found out that a majority approach using *langid.py*, *cld2* and *LangDetect*
 consitenly outperformed any other considered individual system (see paper for more information on this).
 
-| Package                                       | Coverage     | Other                                 |
-|-----------------------------------------------+--------------+---------------------------------------|
-| [[https://github.com/shuyo/ldig][LDIG Language Detection with Infinity N-Grams]] | 17 languages | Specifically trained for Twitter data |
-| [[https://github.com/saffsd/langid.py][langid.py]]                                     | 97 languages |                                       |
-| [[https://code.google.com/p/cld2/][CLD2]]                                          | > 80         |                                       |
-| [[https://code.google.com/p/language-detection/][LangDetect]]                                    | 53 languages |                                       |
+| Package    | Coverage       | Other            |
+|------------+----------------+------------------|
+| [[https://github.com/shuyo/ldig][LDIG]]       | 17 languages   | Twitter-specific |
+| [[https://github.com/saffsd/langid.py][langid.py]]  | 97 languages   |                  |
+| [[https://code.google.com/p/cld2/][CLD2]]       | > 80 languages |                  |
+| [[https://code.google.com/p/language-detection/][LangDetect]] | 53 languages   |                  |
 
 * Dependencies
 
@@ -151,6 +151,18 @@ If you want to build it yourself, you are going to need a couple of things:
 There is a known bug that affects computers running Ubuntu. The application starts but any attemp to close the
 visualization frame results in a core dump failure, meaning that it won't close. In any case, check that
 you have a JDK version not older than 7.
+
+* Literature
+
+langid.py Lui and Baldwin 2012
+CLD2 McCandless 2010
+LangDetect Nakatani 2010
+Lui and Baldwin 2014
+Hawelka et al. 2014
+Leetaru et al. 2012
+Scheffler et al 2014
+White 1983
+Reardon & Firebaugh 
 
 * License
 
