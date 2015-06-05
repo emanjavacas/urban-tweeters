@@ -1,3 +1,4 @@
+
 * Twitviz
 
 The main goal of this project is to collect a Twitter corpus with that provides detailed georeference and language information for tweets located in urban scenarios.
