@@ -2,9 +2,9 @@
   (:import [twitviz.protocols Monolingualism Bilingualism Multilingualism])
   (:require [seesaw.core :refer :all]
             [seesaw.swingx :refer :all]
+            [seesaw.mig :refer [mig-panel]]
             [seesaw.table :refer [value-at]]
-            [twitviz.utils :refer [find-size find-city find-last load-grid
-                                   fetch-ls max-range max-lang entropy]]
+            [twitviz.utils :refer [find-size find-city find-last load-grid fetch-ls max-range max-lang entropy]]
             [twitviz.data :refer [grids get-description]]
             [quil.core :refer [defsketch]]
             [twitviz.protocols])
@@ -17,9 +17,6 @@
   {:width (atom 800) :height (atom 600) :filter (atom 50) :loc? (atom true)
    :protocol (atom :monolingual) :mode (atom :count)
    :gridfn (atom (first grids))})
-
-;; (defn run2 []
-;;   (alert (apply str (map deref (vals app-data)))))
 
 (defn app->text [app-data]
   (let [to->name {:width "Width" :height "Height" :filter "Minimum tweets per language"
@@ -40,10 +37,10 @@
         modes {:entropy {:fn entropy :max (max-range grid entropy)}
                :count   {:fn count   :max (max-range grid count)}}
         max-ls (zipmap ls-idx (map #(max-lang grid %) ls-idx))
-        gstate1 {:lang (atom (first ls-idx)) :alpha (atom 50) :map (atom nil)}        
-        gstate2 {:lang1 (atom (first ls-idx)) :lang2 (atom (second ls-idx))
+        gstate1 {:lang (atom (first ls-idx)) :alpha (atom 50) :map (atom nil) :beta (atom 2) :red (atom 255)}        
+        gstate2 {:lang1 (atom (first ls-idx)) :lang2 (atom (second ls-idx)) :red (atom 255)
                  :alpha (atom 50) :beta (atom 0.03) :map (atom nil)}
-        gstate3 {:mode mode :alpha (atom 50) :beta (atom 0.03) :map (atom nil)}
+        gstate3 {:mode mode :alpha (atom 50) :beta (atom 0.03) :map (atom nil) :red (atom 255)}
         monolingual  (Monolingualism.  grid city @width @height @loc? gstate1 ls-idx max-ls)
         bilingual    (Bilingualism.    grid city @width @height @loc? gstate2 ls-idx)
         multilingual (Multilingualism. grid city @width @height @loc? gstate3 modes)
@@ -56,7 +53,7 @@
       :setup (twitviz.protocols/make-setup target)
       :draw (twitviz.protocols/make-draw target)
       :size [@width @height]
-      :renderer :opengl)))
+      :renderer :p2d)))
 
 (defn explorer-content [title desc content]
   (border-panel
@@ -121,33 +118,34 @@
     :items [files-table :separator descriptions ;input-file
             ])))
 
-(defn create-widget [id desc-text widget-type parse-fn & model]
-  (let [head (label-x :text (apply str (rest (str id))) :wrap-lines? true :font "ARIAL-BOLD-15")
-        desc (label-x :text desc-text :wrap-lines? true)
-        widget (case widget-type
-                 :text (text :id id :columns 3 :text (str @(id app-data))
-                             :listen [:action (fn [e] (reset! (id app-data) (parse-fn (text e))))])
-                 :combobox (combobox :id id :class :style :model model
-                                     :listen [:action (fn [e] (reset! (id app-data) (parse-fn (value e))))]))]
-    [head desc widget]))
+(defn create-component [id desc-text component-type parse-fn & model]
+  (let [head   [(label :text (apply str (rest (str id))) :font "ARIAL-BOLD-15") "gap 10"]
+        desc   [(label :text desc-text :font "ARIAL-ITALIC-14") "gap 10, wrap"]
+        sep    [:separator "growx, wrap, gapleft 10, span 2"]
+        component (case component-type
+                    :text [(text :id id :listen [:action (fn [e] (reset! (id app-data) (parse-fn (text e))))]
+                                 :columns 3 :font "ARIAL-ITALIC-12" :text (str @(id app-data))) "gapleft 30, wrap"]
+                    :combobox [(combobox :listen [:action (fn [e] (reset! (id app-data) (parse-fn (value e))))]
+                                         :id id :class :style :model model) "gapleft 30, wrap"])]    
+    [head component desc sep]))
 
 (def screen-settings
   (explorer-content
    "Screen settings for the visualization"
    ["<i>Select the screen properties for the visualization</i>."
     "<i>Don't forget pressing enter after entering a new value in the text field.</i>"]
-   (grid-panel
-    :columns 3
-    :hgap 5 :vgap 15
+  (mig-panel :constraints ["" "[left]"]
     :items
-    (flatten
-     (reduce (fn [a b] (conj a (apply create-widget b))) []
-             [[:width "This specifies the applet screen width" :text #(Integer/valueOf %)]
-              [:height "This specifies the applet screen height" :text #(Integer/valueOf %)]
-              [:filter "This sets a lower bound of tweets for the considered languages"
-               :combobox #(Integer/valueOf %) 0 10 25 50 100]
-              [:loc? "Display the coordenates of the mouse"
-               :combobox to->boolean "true" "false"]])))))
+    (into []
+          (mapcat #(apply create-component %)
+           [[:width "This option specifies the applet screen width"
+             :text #(Integer/valueOf %)]
+            [:height "This option specifies the applet screen height"
+             :text #(Integer/valueOf %)]
+            [:loc? "Display the coordinates of the mouse"
+             :combobox #(Integer/valueOf %)  0 10 25 50 100]
+            [:filter "This option sets a lower bound of tweets for the considered languages"
+             :combobox to->boolean "true" "false"]])))))
 
 (def viz-mode
   (explorer-content
@@ -155,15 +153,13 @@
    ["<i>Select between <b>bilingual</b> to compare languages agains each other or <b>multilingual</b>
     to visualize total number of languages per region</i>."
     "<i>There is also the possibility to select different aggregation metrics.</i>"]
-   (grid-panel
-    :columns 3
-    :hgap 5 :vgap 15
+   (mig-panel :constraints ["" "[left]"]
     :items
-    (flatten
-     (reduce (fn [a b] (conj a (apply create-widget b))) []
-             [[:protocol "Select linguistic setup" :combobox keyword  "monolingual" "bilingual" "multilingual"]
-              [:mode "Entropy or count (only affects the multilingual mode)"
-               :combobox keyword "entropy" "count"]])))))
+    (into []
+          (mapcat #(apply create-component %)
+                  [[:protocol "Select linguistic setup" :combobox keyword  "monolingual" "bilingual" "multilingual"]
+                   [:mode "Entropy or count (only affects the multilingual mode)"
+                    :combobox keyword "entropy" "count"]])))))
 
 (def explorer-settings
   {"Grid files" grid-files
@@ -179,18 +175,21 @@
    :center (left-right-split
             (scrollable
              (listbox-x :id :leftmenu
+                        :preferred-size [50 :by 10]
                         :model (keys explorer-settings)
                         :highlighters [((hl-color :background :lightblue) :rollover-row)]))
             (border-panel :id :rightmenu
                           :center (get explorer-settings "Grid files"))
-            :divider-location 1/4)))
+            :divider-location 1/5)))
 
 (defn create []
-  (border-panel :center (label-x :text "To do...")))
+  (border-panel
+   :hgap 40 :vgap 40
+   :center (label-x :text "Under construction")))
 
 (defn make-frame []
   (frame :title "TwitViz"
-         :size [640 :by 480]
+         :size [840 :by 500]
          :content
          (border-panel
           :north (toolbar :items [(action :handler dispose! :name "Exit")])
@@ -223,5 +222,6 @@
   (-> (make-frame) add-listeners ;pack!
       show!))
 
-(defn -main [& args]
-  (run-menu))
+;; (defn -main [& args]
+;;   (run-menu))
+(run-menu)

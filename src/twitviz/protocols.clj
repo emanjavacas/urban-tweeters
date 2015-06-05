@@ -4,7 +4,7 @@
            [de.fhpotsdam.unfolding.geo Location]
            [de.fhpotsdam.unfolding.providers StamenMapProvider Microsoft]
            [controlP5 ControlP5 ControlListener ControlEvent DropdownList])
-  (:require [twitviz.utils :refer [draw-location sigmoid set-items rescaler]]
+  (:require [twitviz.utils :refer [draw-location sigmoid set-items rescaler safe-log]]
             [twitviz.data :refer [centers]])
   (:use quil.core)
   (:gen-class))
@@ -41,17 +41,18 @@
   (make-draw   [this]))
 
 ;;; SIGNATURES
-;; Monolingualism     [grid city width height loc? gstate ls-idx max-ls] {:lang :alpha :map}
-;; Bilingualism    [grid city width height loc? gstate ls-idx] {:lang1 :lang2 :alpha :beta :map}
-;; Multilingualism [grid city width height loc? gstate modes] {:mode :alpha :beta :map}
+;; Monolingualism  [grid city width height loc? gstate ls-idx max-ls] {:lang :alpha :beta :red :map}
+;; Bilingualism    [grid city width height loc? gstate ls-idx] {:lang1 :lang2 :alpha :beta :map :red}
+;; Multilingualism [grid city width height loc? gstate modes] {:mode :alpha :map :red}
 
 (defrecord Monolingualism [grid city width height loc? gstate ls-idx max-ls]
   UnfoldingSketch
   (lang->color [this num-tws]
     (let [cur-lang @(:lang (:gstate this))
           max-val (get (:max-ls this) cur-lang 1);avoid div by zero
-          r 255
-          g ((rescaler 0 max-val 0 255) num-tws)
+          beta @(:beta (:gstate this))
+          r @(:red (:gstate this))
+          g (* 255 ((sigmoid beta) num-tws))
           b 0]
       [r g b]))
 
@@ -63,10 +64,14 @@
                            ^Float (second ((keyword (:city this)) centers)))
             control (ControlP5. (quil.applet/current-applet))
             ddl (doto (.addDropdownList control "lang" (- (:width this) 140) 10 35 300) (set-items (:ls-idx this)))
-            sldr (doto (.addSlider control "alpha" 0 255 50 (- (:width this) 90) 0 60 15))]
+            sldr (doto (.addSlider control "alpha" 0 255 50 (- (:width this) 90) 0 60 15))
+            sldr (doto (.addSlider control "beta" 1 8 2 (- (:width this) 90) 30 60 15))
+            sldr (doto (.addSlider control "red" 0 255 255 (- (:width this) 90) 60 60 15))]
         (MapUtils/createDefaultEventDispatcher (quil.applet/current-applet) (listhint the-map))        
         (add-lang-listener control "lang" (:lang (:gstate this)) (:ls-idx this))
         (add-slider-listener control "alpha" (:alpha (:gstate this)))
+        (add-slider-listener control "beta" (:beta (:gstate this)))
+        (add-slider-listener control "red" (:red (:gstate this)))                
         (reset! (:map (:gstate this))
          (doto the-map
            (.zoomAndPanTo ^Location loc 13)
@@ -94,12 +99,11 @@
 (defrecord Bilingualism [grid city width height loc? gstate ls-idx]
   UnfoldingSketch
   (lang->color [this l1 l2]
-    (let [r 255
+    (let [r @(:red (:gstate this))
           g (cond (zero? l1) 255
                   (zero? l2) 0
                   :else (* (/ l2 (+ l1 l2)) 255))
-          b (* 255 ((sigmoid @(:beta (:gstate this)))
-                    (- l2 l1)))]
+          b (* 255 ((sigmoid @(:beta (:gstate this))) (- l2 l1)))]
       [r g b]))
 
     (make-setup [this]
@@ -109,15 +113,19 @@
               loc (Location. ^Float (first ((keyword (:city this)) centers))
                              ^Float (second ((keyword (:city this)) centers)))
               control (ControlP5. (quil.applet/current-applet))
-              ddl1 (doto (.addDropdownList control "lang1" (- (:width this) 220) 10 30 300) (set-items (:ls-idx this)))
-              ddl2 (doto (.addDropdownList control "lang2" (- (:width this) 180) 10 30 300) (set-items (:ls-idx this)))
+              ddl1 (doto (.addDropdownList control "lang1" (- (:width this) 220) 10 30 500)
+                     (set-items (:ls-idx this)) (.hideScrollbar))
+              ddl2 (doto (.addDropdownList control "lang2" (- (:width this) 180) 10 30 500)
+                     (set-items (:ls-idx this)) (.hideScrollbar))
               sldr1 (doto (.addSlider control "alpha" 0 255 50 (- (:width this) 130) 0 60 15))
-              sldr2 (doto (.addSlider control "beta" -3 3 0.3  (- (:width this) 130) 20 60 15))]
+              sldr2 (doto (.addSlider control "beta" -3 1 0.3  (- (:width this) 130) 30 60 15))
+              sldr3 (doto (.addSlider control "red" 0 255 255 (- (:width this) 130) 60 60 15))]
           (MapUtils/createDefaultEventDispatcher (quil.applet/current-applet) (listhint the-map))        
           (add-lang-listener control "lang1" (:lang1 (:gstate this)) (:ls-idx this))
           (add-lang-listener control "lang2" (:lang2 (:gstate this)) (:ls-idx this))
           (add-slider-listener control "alpha" (:alpha (:gstate this)))
-          (add-slider-listener control "beta" (:beta (:gstate this)))        
+          (add-slider-listener control "beta" (:beta (:gstate this)))
+          (add-slider-listener control "red" (:red (:gstate this)))                  
           (reset! (:map (:gstate this))
                   (doto the-map
                     (.zoomAndPanTo ^Location loc 13)
@@ -148,7 +156,7 @@
     (let [cur-mode @(:mode (:gstate this))
           cur-fn (get-in this [:modes cur-mode :fn])
           max-val (get-in this [:modes cur-mode :max])
-          r 255
+          r @(:red (:gstate this))
           g ((rescaler 0 max-val 0 255) (cur-fn ls))
           b 0]
       [r g b]))
@@ -160,11 +168,14 @@
             loc (Location. ^Float (first ((keyword (:city this)) centers))
                            ^Float (second ((keyword (:city this)) centers)))
             control (ControlP5. (quil.applet/current-applet))
-            ddl1 (doto (.addDropdownList control "mode" (- (:width this) 160) 10 55 300) (set-items (map str (keys (:modes this)))))
-            sldr1 (doto (.addSlider control "alpha" 0 255 50 (- (:width this) 90) 0 60 15))]
+            ddl1 (doto (.addDropdownList control "mode" (- (:width this) 160) 10 55 500)
+                   (set-items (map str (keys (:modes this)))) (.hideScrollbar))
+            sldr1 (doto (.addSlider control "alpha" 0 255 50 (- (:width this) 90) 0 60 15))
+            sldr2 (doto (.addSlider control "red" 0 255 255 (- (:width this) 90) 30 60 15))]
         (MapUtils/createDefaultEventDispatcher (quil.applet/current-applet) (listhint the-map))        
         (add-lang-listener control "mode" (:mode (:gstate this)) (keys (:modes this)))
         (add-slider-listener control "alpha" (:alpha (:gstate this)))
+        (add-slider-listener control "red" (:red (:gstate this)))        
         (reset! (:map (:gstate this))
                 (doto the-map
                   (.zoomAndPanTo ^Location loc 13)

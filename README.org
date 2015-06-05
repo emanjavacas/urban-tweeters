@@ -1,0 +1,158 @@
+* Twitviz
+
+The main goal of this project is to collect a Twitter corpus with that provides detailed georeference and language information for tweets located in urban scenarios.
+The novum of this dataset relies in that the data collection was restricted to four selected urban scenarios. These scenarios are, in alphabetical order, Amsterdam, Antwerp, Berlin and Brussels.
+Parallel to the dataset, we are releasing an application that allow to visualize the data on map in different ways.
+
+  This is a project based on Quil and Unfolding for Processing for visualizing urban
+multilingualism through Twitter data. 
+
+* Visualization tool
+
+[[./img/antwerp.png]]
+
+The visualization tool consists of a *menu frame* and the actual *visualization frame*.
+The menu frame allows selecting the specific settings in which the visualization will take place.
+
+** Settings
+
+Settings are best navigated using the panel on the left handside of the menu.
+
+[[./img/init_menu]]
+
+*** Grid files
+The visualization doesn't rely on the actual tweet data (which would be quite computationally heavy) but rather on 
+a so called *grid file*. This file is an aggregation of datapoints to cells of a given size. As a result each cell
+contains a series of numbers indicating the amount of tweets written in a given language.
+A number of precompiled grid files are shipped with the program and a future version will provide functionality
+for creating such grid files out of raw twitter json data.
+
+A description of each grid file is being shown inline at the bottom of the menu frame.
+
+*** Screen settings
+
+You can also select the *width* and *height* of the visualization frame. 
+The two resting options *loc?* and *filter* are somehow more specific.
+If *loc?* is activated, the exact coordinates where the mouse is pointing will be shown on the map.
+*filter* influences the number of languages that the user can choose from at run time.
+A higher value will prevent rare languages from appearing in the dropdown list.
+It doesn't affect the application behaviour when running on monolingual mode.
+
+*** Visualization mode
+There are three types of visualization.
+
+[[./img/berlin]]
+
+**** Monolingual
+     
+Visualization is carried out in a heat map fashion.
+Color is mapped to the total number of tweets written in a given language.
+The color hue will range from less to more dark with increasing number of tweets.
+A slider *ALPHA* controls the transparency.
+Another one, *RED* controls the amount of red that is being plotted.
+It can be used to affect the color range in which the heat map will move.
+A third and last slider *BETA* can be use to highlight and enhance the differences across cells.
+See section Sigmoid for an explanation.
+Additionally, a dropdown list allows the user to select the current language.
+
+**** Bilingual
+
+The purpose of the bilingual visualization mode is to gain insights into the relative proportion of one language
+with respect to a second one.
+Two dropdown lists allow the selection of language one and two.
+A set of sliders, similar to the one in the monolingual settings, is available.
+Language one will be mapped to the lighter colour, whereas language two will be displayed darker.
+
+**** Multilingual
+
+In the multilingual setting a lighter colour is mapped to a higher cell values.
+The meaning of each cell value can be tuned with the option *mode*, which is available 
+both in the *menu frame* and at run time in the form of a dropdown list.
+
+*** Init menu
+
+Once all settings are selected the application can be run by clicking on the init button.
+
+* Data
+
+** General dataset
+
+The general dataset consists of a collection of tweets directly collected from the [[https://dev.twitter.com/streaming/overview][Twitter Streaming API]] since December 2014.
+Given the nature of the dataset, only tweets with geolocation information were collected.
+According to Leetaru et al. 2012, only 1,6% of the Twitter stream is actually shipped with geolocation information.
+This is a heavy contraint on the top of the general twitter streaming limit of ~1%.
+Currently, the dataset has grown above 2 million tweets with the following proportions
+
+| City      | Number of tweets |
+|-----------+------------------|
+| Amsterdam |           679205 |
+| Antwerp   |           415813 |
+| Berlin    |           691998 |
+| Brussels  |           497667 |
+
+** Berlin dataset
+
+For the Berlin dataset, non-exhaustive bot detection was semi-manually performed with the aid of [[http://truthy.indiana.edu/botornot/][Bot or Not?]] and a set of heuristics based on profile information.
+A preselection of candidates was done by sorting ids by (i) total number of tweets in the database and (ii) total number of statuses.
+The rationale behind this strategy is twofold:
+- First, bots are known to have a more productive tweeting behaviour than humans [[http://delivery.acm.org/10.1145/1930000/1920265/p21-chu.pdf?ip=146.175.5.198&id=1920265&acc=ACTIVE%20SERVICE&key=D7FC43CABE88BEAA%2EE1DEF47A6C0527C4%2E4D4702B0C3E38B35%2E4D4702B0C3E38B35&CFID=517147308&CFTOKEN=29245406&__acm__=1433514639_03e1ac45f70c85b1fa352c6ff0acd697][(Chu et al. 2010).]] 
+- Secondly, bots are known to have a more evenly distributed tweeting behaviour across time than humans.
+  That means that in periods of the week of less human tweeting activity (night and weekends), proportionally more
+  bot-authored tweets will be captured by the stream.
+# Also, a dataset extracted from the [[https://www.statistik-berlin-brandenburg.de/regionales/regionalstatistiken/regionalstatistiken.asp][Berlin register data]] was
+
+*** Dataset expansion
+
+Once a sufficient number of known users were collected, a parallel tweet collection method was applied.
+This consisted on selectively retrieve tweets for the known ids. Using the [[https://dev.twitter.com/rest/reference/get/statuses/user_timeline][RESTful API]] for mining user timelines.
+
+* Language detection
+
+Language detection was carried out following [ref]. They found out that a majority approach using *langid.py*, *cld2* and *LangDetect*
+consitenly outperformed any other considered individual system (see paper for more information on this).
+
+| Package                                       | Coverage     | Other                                 |
+|-----------------------------------------------+--------------+---------------------------------------|
+| [[https://github.com/shuyo/ldig][LDIG Language Detection with Infinity N-Grams]] | 17 languages | Specifically trained for Twitter data |
+| [[https://github.com/saffsd/langid.py][langid.py]]                                     | 97 languages |                                       |
+| [[https://code.google.com/p/cld2/][CLD2]]                                          | > 80         |                                       |
+| [[https://code.google.com/p/language-detection/][LangDetect]]                                    | 53 languages |                                       |
+
+* Dependencies
+
+Severals libraries were employed. All of them are part of the JVM ecosystem and were ensambled into uniform Clojure code
+by taking advantage of the Java-[[clojure.org/java_interop][interop]] facilities that [[http://clojure.org/][Clojure]] offers.
+
+- [[http://quil.info][Quil]] (depends on [[https://processing.org][Processing]])
+- [[unfoldingmaps.org][Unfolding Maps]]
+- [[http://www.sojamo.de/libraries/controlP5/][ControlP5]]
+- [[https://github.com/daveray/seesaw][Seesaw]] (based on Swing)
+
+* Running the application
+
+The application has been reported to run on the vast majority of Mac OS versions and Windows.
+More concretely, it has been tested on the following Operative Systems:
+
+| OS            | Processor             | Memory |
+|---------------+-----------------------+--------|
+| OS X Yosemite | 2,7 GHz Intel Core i5 | 8 GB   |
+| Ubuntu 15.04  | 3,1 GHz Intel Core i5 | 8 GB   |
+| Windows 7     | 2,6 GHz Intel Core i5 | 8 GB   |
+
+The easiest way to run the application is downloading the jar executable. Make sure that you have at least version 7 of the JDK installed.
+If you want to build it yourself, you are going to need a couple of things:
+- An installation of Clojure.
+- The easiest way of running Clojure code is using [[http://leiningen.org][Leiningen]].
+- Unfortunately, some of the dependencies are not available from [[http://clojars.org][Clojars]] and won't be automatically pulled by Leiningen. The workaround is to use the [[https://github.com/kumarshantanu/lein-localrepo][lein-localrepo]] plugin.
+- Download the jars for /unfolding/, /controlp5/, /log4j/, and /glgraphics/ and intall them locally following the lein-localrepo instructions.
+
+** Bugs
+
+There is a known bug that affects computers running Ubuntu. The application starts but any attemp to close the
+visualization frame results in a core dump failure, meaning that it won't close. In any case, check that
+you have a JDK version not older than 7.
+
+* License
+
+Copyright © 2015 Enrique Manjavacas
+Distributed under the Eclipse Public License either version 1.0.

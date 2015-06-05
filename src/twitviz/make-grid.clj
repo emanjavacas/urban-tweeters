@@ -3,10 +3,8 @@
             [clj-json.core :as clj-json];fast json reader
             [clj-time.core :as time]
             [clj-time.format :as format]
-            [my-utils.io :refer [lazy-lines frm-save parse-number]]
-            [my-utils.syntax :refer [deep-merge-with]]
             [twitviz.data :refer [bots boxes]]
-            [twitviz.utils :refer [inside? tweet->coors find-city]]))
+            [twitviz.utils :refer [inside? tweet->coors find-city deep-merge-with]]))
 
 (defn tweet-stream
   "fast json parsing for tweets"

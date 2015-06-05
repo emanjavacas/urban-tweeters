@@ -4,9 +4,41 @@
            [controlP5 DropdownList])
   (:require [clojure.java.io :as io]
             [clojure.string :as s]
-            [my-utils.syntax :refer :all]
-            [my-utils.io :refer [lazy-lines parse-number]]
             [quil.core :refer [mouse-x mouse-y fill text]]))
+
+(defn deep-merge-with
+  "Like merge-with, but merges maps recursively, applying the given fn
+  only when there's a non-map at a particular level."
+  [f & maps]
+  (apply
+    (fn m [& maps]
+      (if (every? map? maps)
+        (apply merge-with m maps)
+        (apply f maps)))
+    maps))
+
+(defn map-kv
+  "apply function f over the vals of m.
+  returns a map with the new vals"
+  [m f]
+  (reduce-kv #(assoc %1 %2 (f %3)) {} m))
+
+(defn parse-number
+  "Reads a number from a string. Returns nil if not a number."
+  [s]
+  (if (re-find #"^-?\d+\.?\d*([Ee]\+\d+|[Ee]-\d+|[Ee]\d+)?$" (.trim s))
+    (read-string s)))
+
+(defn lazy-lines [in-fn & {:keys [input] :or {input :file}}]
+  (letfn [(helper [rdr]
+            (lazy-seq (if-let [line (.readLine rdr)]
+                        (cons line (helper rdr))
+                        (do (.close rdr) nil))))]
+    (case input
+      :file (helper (io/reader in-fn))
+      :dir (let [fs (.listFiles (io/file in-fn))]
+             (flatten (map #(helper (io/reader %)) fs))))))
+
 
 ;;; Operations on files
 (defn find-city
@@ -58,8 +90,11 @@
                       Math/abs))))
          (reduce +))))
 
-(defn sigmoid [a] ; doesn't need to compute the max-range
-  (fn [x] (/ 1 (+ 1 (Math/exp (- (* a x)))))))
+(defn sigmoid
+  "returns a function that computes sigmoid
+  on a new value `x` shifted by parameter `alpha`"
+  [alpha]
+  (fn [x] (/ 1 (+ 1 (Math/exp (- (* alpha x)))))))
 
 (defn rescaler
   "returns a function that scales x to a new range
@@ -70,6 +105,18 @@
     (+ new-min (/ (* (- new-max new-min)
                      (- x min))
                   (- max min)))))
+
+(defn safe-log
+  "computes log of base `base`, handles `x` less than or equal zero"
+  ([x] (safe-log Math/E))
+  ([base x]
+   (cond (zero? x) 0
+         (> 0 x)   0
+         :else (/ (Math/log x) (Math/log base)))))
+
+(defn inverse [x base]
+  (if (zero? base) 0
+      (/ 1 (Math/pow base (- x)))))
 
 ;;; Geometry
 (defn in-rect?
@@ -171,3 +218,4 @@
   ([^DropdownList ddl ks vs]
    (doseq [[k v] (zipmap ks vs)]
      (.addItem ddl k v))))
+

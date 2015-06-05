@@ -8,9 +8,8 @@
 	    [clojure.data.json :as json]
             [clojure.data.csv :as csv]
             [incanter
-             [core :refer :all]
-             [charts :refer :all]
-             [stats :refer :all]]))
+             [core charts stats ]]
+            ))
 ;             [datasets :refer :all]]))
 #+END_SRC
 
@@ -53,9 +52,7 @@
                   (assoc-in acc [k] new-v)))
               {}
               m)))	      
-#+END_SRC
 
-#+BEGIN_SRC clojure
 (defn map-to-dense [m ks]
   (reduce (fn [acc k]
             (assoc acc k (get m k 0)))
@@ -63,8 +60,6 @@
           ks))
 #+END_SRC
 
-#+RESULTS:
-: #'twitviz.stats/map-to-dense
 
 * Implementation of Theil multigroup entropy index
 
@@ -157,16 +152,25 @@ Theil's multigroup diversity index is bounded by zero and one.
                    gms))))
 #+END_SRC
 
+
 * Computations
 ** Based on tweets
 
 - Fetch the data
  #+BEGIN_SRC clojure :results silent
-(def berlin (load-grid "resources/berlin.grid"))
+(def data-dir "/Users/quique/data/twitproj/")
+(def in-dir "/Users/quique/code/clojure/twitviz/")
+(def berlin (load-grid (str in-dir "resources/files/berlin.grid")))
 (def berlin-hoods (fetch-hoods "berlin"))
 (def berlin-hoods-light (fetch-hoods "berlin-light"))
-(def berlin-by-hood (frm-load "berlin_by_polys_light.tweets"))
+(def berlin-by-hood (frm-load (str data-dir "berlin_by_hoods_light.tweets")))
  #+END_SRC
+
+#+BEGIN_SRC clojure
+
+#+END_SRC
+
+#+RESULTS:
 
 - The distribution of cells by district is then
 #+BEGIN_SRC clojure :results value
@@ -195,10 +199,10 @@ Theil's multigroup diversity index is bounded by zero and one.
 
 - Read in data
 #+BEGIN_SRC clojure :results silent
-(def berlin-register (frm-load "berlin_by_districts.register"))
+(def berlin-register (frm-load (str data-dir "berlin_by_districts.register")))
 #+END_SRC
 
-- Compute entropy (normalizing hood names)
+*** Compute entropy (normalizing hood names)
 #+BEGIN_SRC clojure :results silent
 (def result-register (zipmap (map #(second (clojure.string/split % #" ")) (keys berlin-register))
                      (map entropy-index (map vals (vals berlin-register)))))
@@ -207,6 +211,8 @@ Theil's multigroup diversity index is bounded by zero and one.
 
 #+BEGIN_SRC clojure :results silent
 (def result-merged (merge-with vector result-tweets result-register))
+(def x (map first (vals result-merged)))
+(def y (map second (vals result-merged)))
 (clojure.pprint/pprint result-merged)
 #+END_SRC
 
@@ -226,23 +232,27 @@ Theil's multigroup diversity index is bounded by zero and one.
  "Marzahn-Hellersdorf"        [0.9395921710538039 0.8818968964340289]}
 #+end_example
 
---- barplot
+*** Barplot
 #+BEGIN_SRC clojure :results silent
-(view (bar-chart (mapcat identity (repeat 2 (keys result-merged)))
+(def barchart (bar-chart (mapcat identity (repeat 2 (keys result-merged)))
                  (concat (map first (vals result-merged)) (map second (vals result-merged)))
                  :group-by (concat (repeat 12 "Tweets") (repeat 12 "Register"))
+		 :x-label "Districts" :y-label "Theil's entropy index"
                  :legend true))
+(save barchart "barchart.png" :width 1000)
 #+END_SRC
 
---- scatterplot
+*** Scatterplot
 #+BEGIN_SRC clojure
-(def correlation-scatter (scatter-plot (map first (vals result-merged))
-                                       (map second (vals result-merged))))
+(def correlation-scatter (scatter-plot x y :x-label "Tweets" :y-label "Register data"))
+(def lm (linear-model y x))
+(add-lines correlation-scatter x (:fitted lm))
+(save correlation-scatter "scatter_correlation.png")
 (view correlation-scatter)
 #+END_SRC
 
 #+RESULTS:
-: #'twitviz.stats/correlation-scatter#<ChartFrame org.jfree.chart.ChartFrame[frame1,0,22,500x400,layout=java.awt.BorderLayout,title=Incanter Plot,resizable,normal,defaultCloseOperation=DISPOSE_ON_CLOSE,rootPane=javax.swing.JRootPane[,0,22,500x378,layout=javax.swing.JRootPane$RootLayout,alignmentX=0.0,alignmentY=0.0,border=,flags=16777673,maximumSize=,minimumSize=,preferredSize=],rootPaneCheckingEnabled=true]>
+: #'twitviz.stats/x#'twitviz.stats/y#'twitviz.stats/correlation-scatter#'twitviz.stats/lm#<JFreeChart org.jfree.chart.JFreeChart@5ac9fce>nil#<ChartFrame org.jfree.chart.ChartFrame[frame9,0,22,500x400,layout=java.awt.BorderLayout,title=Incanter Plot,resizable,normal,defaultCloseOperation=DISPOSE_ON_CLOSE,rootPane=javax.swing.JRootPane[,0,22,500x378,layout=javax.swing.JRootPane$RootLayout,alignmentX=0.0,alignmentY=0.0,border=,flags=16777675,maximumSize=,minimumSize=,preferredSize=],rootPaneCheckingEnabled=true]>
 
 #+BEGIN_SRC clojure
 (count (flatten (repeat 2 (keys result-merged))))
@@ -255,11 +265,80 @@ Theil's multigroup diversity index is bounded by zero and one.
 (flatten (repeat 2 (keys result-merged)))
 #+END_SRC
 
+#+RESULTS:
+| Charlottenburg-Wilmersdorf | Spandau | Pankow | Mitte | Steglitz-Zehlendorf | Reinickendorf | Neukölln | Friedrichshain-Kreuzberg | Lichtenberg | Tempelhof-Schöneberg | Treptow-Köpenick | Marzahn-Hellersdorf | Charlottenburg-Wilmersdorf | Spandau | Pankow | Mitte | Steglitz-Zehlendorf | Reinickendorf | Neukölln | Friedrichshain-Kreuzberg | Lichtenberg | Tempelhof-Schöneberg | Treptow-Köpenick | Marzahn-Hellersdorf |
+
+*** Correlations
+#+BEGIN_SRC clojure
+(correlation x y)
+#+END_SRC
+
+#+RESULTS:
+: 0.870187217188301
+
+#+BEGIN_SRC R :results output
+x <-c(0.834134741933901, 0.9084754000487446, 0.8762883761933832, 0.8269929167774379,
+      0.9019247857002738, 0.8803239786996437, 0.8500908792523975, 0.8226599155950466,
+      0.8914504298018489, 0.8696219289667678, 0.913796737368426, 0.9395921710538039)
+
+y <- c(0.7398183167160721, 0.7780782138734974, 0.8380497077104752, 0.6936442588657165,
+       0.8028626412058488, 0.7896145263556944, 0.7343981458784431, 0.7116018131026864,
+       0.8382789317832962, 0.7569444211626952, 0.8990007985980895, 0.8818968964340289)
+
+cor.test(x, y)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+
+	Pearson's product-moment correlation
+
+data:  x and y
+t = 5.5848, df = 10, p-value = 0.0002325
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ 0.5918632 0.9631099
+sample estimates:
+      cor 
+0.8701872 
+
+#+end_example
+
+--- permutation test
+#+BEGIN_SRC clojure
+(def permuted-tweets (sample-permutations 5000 x))
+(def permuted-register (sample-permutations 5000 y))
+(def permuted-corrs (map correlation 
+                         permuted-tweets
+                         permuted-register))
+#+END_SRC
+
+#+BEGIN_SRC clojure
+(view (histogram permuted-corrs))
+#+END_SRC
+#+RESULTS:
+: #<ChartFrame org.jfree.chart.ChartFrame[frame10,0,22,500x400,layout=java.awt.BorderLayout,title=Incanter Plot,resizable,normal,defaultCloseOperation=DISPOSE_ON_CLOSE,rootPane=javax.swing.JRootPane[,0,22,500x378,layout=javax.swing.JRootPane$RootLayout,alignmentX=0.0,alignmentY=0.0,border=,flags=16777675,maximumSize=,minimumSize=,preferredSize=],rootPaneCheckingEnabled=true]>
+
+#+BEGIN_SRC clojure
+(mean permuted-corrs)
+#+END_SRC
+
+#+RESULTS:
+: -0.00395862067519123
+
+#+BEGIN_SRC clojure
+(quantile permuted-corrs :probs [0.025 0.975])
+#+END_SRC
+
+#+RESULTS:
+| -0.5958495220859663 | 0.5788970950038481 |
+
+
 * Association measures (language-district)
 
 - load the data  
 #+BEGIN_SRC clojure :results silent
-(def berlin-by-hood (frm-load "berlin_by_polys_light.tweets"))
+(def berlin-by-hood (frm-load (str data-dir "berlin_by_hoods_light.tweets")))
 #+END_SRC
 
 - langs 
@@ -311,6 +390,9 @@ Theil's multigroup diversity index is bounded by zero and one.
              [district (map-to-dense ls langs)])))
 #+END_SRC
 
+#+RESULTS:
+: #'twitviz.stats/langs-by-hood-grid
+
 
 #+BEGIN_SRC clojure
 (map keys (vals langs-by-hood))
@@ -355,6 +437,9 @@ Theil's multigroup diversity index is bounded by zero and one.
   (json/write (deep-map-to-dense langs-by-hood) wrt :escape-unicode false)) 
 #+END_SRC
 
+#+RESULTS:
+: nil
+
 #+BEGIN_SRC clojure
 (with-open [wrt (clojure.java.io/writer "test_grid.json")]
   (.write wrt (apply str (interpose "," (flatten ["district" (vec langs) "\n"]))))
@@ -371,14 +456,67 @@ library(RJSONIO)
 data <- as.data.frame(fromJSON("~/code/clojure/twitviz/test.json"))
  #+END_SRC
 
+ #+RESULTS:
+ |  120 |    9 |    35 |   417 |   21 |   47 |   24 |   278 |   40 |   41 |   18 |    2 |
+ |  896 |   36 |   219 |  2389 |   53 |   98 |  142 |  1493 |  233 |  949 |  118 |   15 |
+ | 9556 |  960 | 10748 | 34541 | 1975 | 4354 | 3248 | 18063 | 1832 | 4652 | 1956 |  729 |
+ |  111 |    8 |     4 |    42 |   17 |    0 |    1 |    34 |    6 |   13 |    0 |   14 |
+ |    0 |    0 |     1 |     1 |    0 |    0 |    0 |     0 |    0 |    0 |    0 |    0 |
+ |    0 |    1 |     3 |     4 |    0 |    1 |    3 |    13 |    0 |    1 |    0 |    0 |
+ |    1 |    0 |     0 |     0 |    0 |    0 |    0 |     1 |    0 |    0 |    0 |    0 |
+ |    1 |    0 |    15 |    16 |    1 |    1 |    0 |     5 |    0 |    1 |    0 |    0 |
+ |    1 |    2 |     0 |     4 |    0 |    2 |    0 |     2 |    0 |    1 |    0 |    1 |
+ |    0 |    0 |     0 |     1 |    0 |    0 |    0 |     0 |    0 |    0 |    0 |    0 |
+ | 1077 |  611 |   115 |  2414 |  341 | 2580 | 3729 |  2603 |   28 | 1815 |  189 |  149 |
+ |  317 |   29 |   247 |   898 |   61 |   79 |   65 |   485 |    6 |  395 |   17 |    6 |
+ |  142 |    0 |     2 |   135 |    4 |    3 |   63 |    21 |   13 |    6 |   10 |    0 |
+ |    4 |    2 |     1 |     9 |    0 |    1 |    2 |    10 |    0 |    2 |    0 |    0 |
+ |    4 |    0 |     0 |    13 |    0 |    0 |    0 |     3 |    0 |    0 |    0 |    0 |
+ |    0 |    0 |    51 |     6 |    0 |    1 |    0 |     0 |    7 |    0 |    1 |    0 |
+ |    7 |    0 |     9 |    50 |   17 |    4 |    2 |     8 |    7 |    2 |    0 |    3 |
+ |   33 |    1 |     0 |    14 |    0 |    1 |    0 |     1 |    0 |    0 |    3 |    4 |
+ |   70 |   34 |    41 |   351 |    9 |  173 |   35 |    49 |   11 |   26 |    7 |   85 |
+ |   20 |    1 |     4 |    13 |    3 |    8 |    1 |    13 |    2 |    5 |    3 |    0 |
+ |   14 |    5 |    27 |    32 |    3 |    0 |    4 |    25 |    1 |    7 |   42 |    0 |
+ |   44 |    3 |    18 |   149 |    5 |   17 |   25 |   107 |    6 |   38 |    7 |    2 |
+ |    0 |    1 |     2 |     3 |    0 |    0 |    0 |     0 |    0 |    0 |    0 |    0 |
+ |    1 |    1 |     2 |     2 |    1 |    0 |    2 |     1 |    0 |    0 |    0 |    0 |
+ |  197 |   23 |   185 |   813 |   93 |   94 |   87 |   361 |   52 |  290 |   65 |   70 |
+ |    1 |    0 |     0 |     0 |    0 |    0 |    0 |     0 |    0 |    0 |    0 |    0 |
+ |    8 |    0 |     1 |    48 |    1 |    9 |    2 |    35 |    1 |    6 |    1 |    0 |
+ |    0 |    0 |    10 |     2 |    3 |    0 |    0 |     3 |    0 |    5 |    2 |    0 |
+ | 8350 | 2845 | 11459 | 51802 | 2837 | 4667 | 4222 | 13673 | 4994 | 8228 | 3826 | 7766 |
+ |    0 |    0 |     0 |     5 |    1 |    0 |    1 |     0 |    1 |    1 |    0 |    0 |
+ |  561 |   46 |   368 |  1106 |  132 |   70 |  164 |   338 |  624 |  175 |  192 |  687 |
+ |    1 |    0 |     0 |     1 |    2 |    0 |    0 |     5 |    0 |    0 |    0 |    0 |
+ | 1004 |  354 |   371 |  2882 |  148 |  151 |  293 |  1673 |   98 |  655 |   98 |   28 |
+ |  177 |   30 |   168 |  1306 |   10 |   76 |   64 |   338 |    5 |   27 |   29 |    6 |
+ |    0 |    0 |     0 |     4 |    0 |    0 |    3 |     2 |    0 |    0 |    0 |    0 |
+ |    2 |    1 |     2 |    11 |    8 |    2 |    0 |    21 |    0 |    0 |    0 |    1 |
+ |   13 |    0 |     2 |    36 |    0 |    4 |    2 |     4 |    1 |   12 |    0 |    0 |
+ | 1094 |  970 |    73 |  1129 |   56 |  294 |  414 |   745 |   13 |  301 |   10 |    7 |
+ |    3 |    0 |     0 |     2 |    0 |    6 |    0 |     0 |    2 |    5 |    0 |    0 |
+ |   50 |    0 |    14 |   125 |    5 |    5 |  114 |    26 |    1 |   50 |    0 |    1 |
+ |  192 |    2 |    32 |  1372 |   17 |    6 |    0 |    13 |    0 |   13 |    1 |    0 |
+
 #+BEGIN_SRC R
 data <- read.csv("~/code/clojure/twitviz/test_grid.json", header=T)
 data <- data[,c(1:ncol(data)-1)]
 #+END_SRC
 
+#+RESULTS:
+
 #+BEGIN_SRC R
 pvals <- data.frame(lang=colnames(data)[2:ncol(data)], pval=sapply(c(2:ncol(data)), function(x) chisq.test(data[,x], data$district)$p.value))
 #+END_SRC
+
+#+RESULTS:
+
+
+
+** Fisher exact
+
+** 
 
 
 * Other
@@ -389,7 +527,7 @@ pvals <- data.frame(lang=colnames(data)[2:ncol(data)], pval=sapply(c(2:ncol(data
 
 # NOT RUN!!
 #+BEGIN_SRC clojure :results silent
-(with-open [rdr (clojure.java.io/reader "/Users/quique/data/berlin_zensus/dataset3.csv")]
+(with-open [rdr (clojure.java.io/reader "/Users/quique/data/twitproj/berlin_zensus/dataset3_second.csv")]
   (let [header (first (csv/read-csv rdr))
         dataset (doall (next (csv/read-csv rdr)))
         coerce-fn (fn [[a b c d e f]]
@@ -414,12 +552,21 @@ pvals <- data.frame(lang=colnames(data)[2:ncol(data)], pval=sapply(c(2:ncol(data
                    (= 8 (last row))
                    (re-matches regex (second row))
                    (= l (first row)))]
-      (swap! my-dataset syn/deep-merge {district {subdistrict {l v}}})))
+      (swap! my-dataset deep-merge {district {subdistrict {l v}}})))
   (def my-data @my-dataset))
-(io/frm-save "berlin_by_districts.register" my-data)
+;; (io/frm-save "berlin_by_districts.register" my-data)
 #+END_SRC
+
+#+BEGIN_SRC clojure
+(spit "berlin_by_districts2.json" (json/write-str my-data :escape-unicode false))
+#+END_SRC
+
+#+RESULTS:
+: nil
 
 - Sanity check, compute total number of inhabitants
 #+BEGIN_SRC clojure
-(map #(count (vals (second %))) my-data)
+;; (map #(count (vals (second %))) my-data)
 #+END_SRC
+
+#+RESULTS:
