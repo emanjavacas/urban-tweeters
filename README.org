@@ -171,6 +171,6 @@ Reardon & Firebaugh
 
 * License
 
-# Add license info, e.g. creative commons by-nc-sa http://creativecommons.org/licenses/by-nc-sa/3.0/
 Copyright © 2015 Enrique Manjavacas
-Distributed under the Eclipse Public License either version 1.0.
+Distributed under the Eclipse Public License - Version 1.0.
+https://www.eclipse.org/legal/epl-v10.html 
