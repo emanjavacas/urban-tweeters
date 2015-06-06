@@ -1,13 +1,13 @@
-(ns twitviz.menu
-  (:import [twitviz.protocols Monolingualism Bilingualism Multilingualism])
+(ns urban.menu
+  (:import [urban.protocols Monolingualism Bilingualism Multilingualism])
   (:require [seesaw.core :refer :all]
             [seesaw.swingx :refer :all]
             [seesaw.mig :refer [mig-panel]]
             [seesaw.table :refer [value-at]]
-            [twitviz.utils :refer [find-size find-city find-last load-grid fetch-ls max-range max-lang entropy]]
-            [twitviz.data :refer [grids get-description]]
+            [urban.utils :refer [find-size find-city find-last load-grid fetch-ls max-range max-lang entropy]]
+            [urban.data :refer [grids get-description]]
             [quil.core :refer [defsketch]]
-            [twitviz.protocols])
+            [urban.protocols])
   (:gen-class))
 
 (native!)
@@ -30,7 +30,7 @@
     "true" true
     "false" false))
 
-(defn run-twitviz [{:keys [width height filter loc? protocol mode gridfn]}]
+(defn run-urban-tweeters [{:keys [width height filter loc? protocol mode gridfn]}]
   (let [grid (load-grid @gridfn)
         city (find-city @gridfn)
         ls-idx (fetch-ls grid @filter)
@@ -48,10 +48,10 @@
                      :monolingual monolingual 
                      :bilingual   bilingual 
                      :multilingual multilingual)]
-    (defsketch TwitViz
+    (defsketch Urban-Tweeters
       :title (str "Displaying " city)
-      :setup (twitviz.protocols/make-setup target)
-      :draw (twitviz.protocols/make-draw target)
+      :setup (urban.protocols/make-setup target)
+      :draw (urban.protocols/make-draw target)
       :size [@width @height]
       :renderer :p2d)))
 
@@ -75,7 +75,7 @@
              :mnemonic \R
              :halign :leading :valign :center
              :selected? false
-             :listen [:action (fn [e] (run-twitviz app-data))])
+             :listen [:action (fn [e] (run-urban-tweeters app-data))])
             :separator
             (header
              :title "Selected settings"
@@ -188,7 +188,7 @@
    :center (label-x :text "Under construction")))
 
 (defn make-frame []
-  (frame :title "TwitViz"
+  (frame :title "Urban Tweeters"
          :size [840 :by 500]
          :content
          (border-panel
@@ -222,6 +222,6 @@
   (-> (make-frame) add-listeners ;pack!
       show!))
 
-;; (defn -main [& args]
-;;   (run-menu))
-(run-menu)
+(defn -main [& args]
+  (run-menu))
+;; (run-menu)

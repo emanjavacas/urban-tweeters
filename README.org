@@ -1,5 +1,5 @@
 
-* Twitviz
+* Urban Tweeters
 
 The main goal of this project is to collect a Twitter corpus with that provides detailed georeference and language information for tweets located in urban scenarios.
 The novum of this dataset relies in that the data collection was restricted to four selected urban scenarios. These scenarios are, in alphabetical order, Amsterdam, Antwerp, Berlin and Brussels.
@@ -9,7 +9,7 @@ Parallel to the dataset, we are releasing an application that allow to visualize
 multilingualism through Twitter data. 
 
 * Visualization tool
-
+#+CAPTION: showing proportional densities of tweets in Antwerp
 [[./img/antwerp.png]]
 
 The visualization tool consists of a *menu frame* and the actual *visualization frame*.
@@ -19,6 +19,7 @@ The menu frame allows selecting the specific settings in which the visualization
 
 Settings are best navigated using the panel on the left handside of the menu.
 
+#+CAPTION: initialization menu
 [[./img/init_menu.png]]
 
 *** Grid files
@@ -40,9 +41,10 @@ A higher value will prevent rare languages from appearing in the dropdown list.
 It doesn't affect the application behaviour when running on monolingual mode.
 
 *** Visualization mode
-There are three types of visualization.
-
+#+CAPTION: multilingual display of Berlin using Unfolding maps
 [[./img/berlin.png]]
+
+There are three types of visualization.
 
 **** Monolingual
      
@@ -142,10 +144,10 @@ More concretely, it has been tested on the following Operative Systems:
 
 The easiest way to run the application is downloading the jar executable. Make sure that you have at least version 7 of the JDK installed.
 If you want to build it yourself, you are going to need a couple of things:
-- An installation of Clojure.
+- A [[http://clojure.org][Clojure]] installation.
 - The easiest way of running Clojure code is using [[http://leiningen.org][Leiningen]].
 - Unfortunately, some of the dependencies are not available from [[http://clojars.org][Clojars]] and won't be automatically pulled by Leiningen. The workaround is to use the [[https://github.com/kumarshantanu/lein-localrepo][lein-localrepo]] plugin.
-- Download the jars for /unfolding/, /controlp5/, /log4j/, and /glgraphics/ and intall them locally following the lein-localrepo instructions.
+- Download the jars for /unfolding/, /controlp5/, /log4j/, /json4proc/ and /glgraphics/ and intall them locally following the lein-localrepo instructions.
 
 ** Bugs
 
@@ -155,15 +157,6 @@ you have a JDK version not older than 7.
 
 * Literature
 
-langid.py Lui and Baldwin 2012
-CLD2 McCandless 2010
-LangDetect Nakatani 2010
-Lui and Baldwin 2014
-Hawelka et al. 2014
-Leetaru et al. 2012
-Scheffler et al 2014
-White 1983
-Reardon & Firebaugh 
 
 * License
 

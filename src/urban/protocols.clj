@@ -1,11 +1,11 @@
-(ns twitviz.protocols
+(ns urban.protocols
   (:import [de.fhpotsdam.unfolding UnfoldingMap]
            [de.fhpotsdam.unfolding.utils MapUtils ScreenPosition]
            [de.fhpotsdam.unfolding.geo Location]
            [de.fhpotsdam.unfolding.providers StamenMapProvider Microsoft]
            [controlP5 ControlP5 ControlListener ControlEvent DropdownList])
-  (:require [twitviz.utils :refer [draw-location sigmoid set-items rescaler safe-log]]
-            [twitviz.data :refer [centers]])
+  (:require [urban.utils :refer [draw-location sigmoid set-items rescaler safe-log]]
+            [urban.data :refer [centers]])
   (:use quil.core)
   (:gen-class))
 
@@ -63,7 +63,8 @@
             loc (Location. ^Float (first ((keyword (:city this)) centers))
                            ^Float (second ((keyword (:city this)) centers)))
             control (ControlP5. (quil.applet/current-applet))
-            ddl (doto (.addDropdownList control "lang" (- (:width this) 140) 10 35 300) (set-items (:ls-idx this)))
+            ddl (doto (.addDropdownList control "lang" (- (:width this) 140) 10 35 500)
+                  (set-items (:ls-idx this)) (.hideScrollbar))
             sldr (doto (.addSlider control "alpha" 0 255 50 (- (:width this) 90) 0 60 15))
             sldr (doto (.addSlider control "beta" 1 8 2 (- (:width this) 90) 30 60 15))
             sldr (doto (.addSlider control "red" 0 255 255 (- (:width this) 90) 60 60 15))]

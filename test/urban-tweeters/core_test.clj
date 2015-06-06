@@ -1,6 +1,6 @@
-(ns twitproj.core-test
+(ns urban-tweeters.core-test
   (:require [clojure.test :refer :all]
-            [twitproj.core :refer :all]))
+            [urban-tweeters.core :refer :all]))
 
 (deftest a-test
   (testing "FIXME, I fail."

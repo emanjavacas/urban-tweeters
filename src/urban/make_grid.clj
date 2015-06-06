@@ -1,10 +1,10 @@
-(ns twitviz.make-grid
+(ns urban.make-grid
   (:require [clojure.data.json :as json]
             [clj-json.core :as clj-json];fast json reader
             [clj-time.core :as time]
             [clj-time.format :as format]
-            [twitviz.data :refer [bots boxes]]
-            [twitviz.utils :refer [inside? tweet->coors find-city deep-merge-with]]))
+            [urban.data :refer [bots boxes]]
+            [urban.utils :refer [inside? tweet->coors find-city deep-merge-with]]))
 
 (defn tweet-stream
   "fast json parsing for tweets"

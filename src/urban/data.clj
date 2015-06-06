@@ -1,4 +1,4 @@
-(ns twitviz.data
+(ns urban.data
   (require [clojure.string :as s]))
 
 (def centers

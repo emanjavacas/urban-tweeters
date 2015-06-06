@@ -1,4 +1,4 @@
-(ns twitviz.utils
+(ns urban.utils
   (:import [de.fhpotsdam.unfolding UnfoldingMap]
            [de.fhpotsdam.unfolding.geo Location]
            [controlP5 DropdownList])
@@ -173,7 +173,7 @@
 
 (defn load-grid
   "loads the grid according to the specification 
-  given by twitviz.make-grid/save-grid"
+  given by urban.make-grid/save-grid"
   [grid-fn]
   (let [grid (atom {})
         lines (s/split (slurp (io/resource grid-fn)) #"\n")
