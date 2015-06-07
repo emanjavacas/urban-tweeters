@@ -1,12 +1,56 @@
 
 * Urban Tweeters
 
-The main goal of this project is to collect a Twitter corpus with that provides detailed georeference and language information for tweets located in urban scenarios.
-The novum of this dataset relies in that the data collection was restricted to four selected urban scenarios. These scenarios are, in alphabetical order, Amsterdam, Antwerp, Berlin and Brussels.
+This is a project based on [[http://quil.info/][Quil]] and [[http://unfoldingmaps.org/][Unfolding]] for [[http://processing.org/][Processing]] for visualizing urban multilingualism through Twitter data. 
+The main goal of this project is to collect a Twitter corpus that provides detailed georeference and language information for tweets located in urban scenarios.
 Parallel to the dataset, we are releasing an application that allow to visualize the data on map in different ways.
+The novum of this dataset relies in that the data collection was restricted to four selected urban scenarios. These scenarios are, in alphabetical order, Amsterdam, Antwerp, Berlin and Brussels.
 
-  This is a project based on Quil and Unfolding for Processing for visualizing urban
-multilingualism through Twitter data. 
+* Data
+
+** General dataset
+
+The general dataset consists of a collection of tweets directly collected from the [[https://dev.twitter.com/streaming/overview][Twitter Streaming API]] since December 2014.
+Given the nature of the dataset, only tweets with geolocation information were collected.
+According to Leetaru et al. 2012, only 1,6% of the Twitter stream is actually shipped with geolocation information.
+This is a heavy contraint on the top of the general twitter streaming limit of ~1%.
+Currently, the dataset has grown above 2 million tweets with the approximately following proportions (7/6/2015).
+
+| City      | Number of tweets |
+|-----------+------------------|
+| Amsterdam |           679205 |
+| Antwerp   |           415813 |
+| Berlin    |           691998 |
+| Brussels  |           497667 |
+
+** Berlin dataset
+
+For the Berlin dataset, non-exhaustive bot detection was semi-manually performed with the aid of [[http://truthy.indiana.edu/botornot/][Bot or Not?]] and a set of heuristics based on profile information.
+A preselection of candidates was done by sorting ids by (i) total number of tweets in the database and (ii) total number of statuses.
+The rationale behind this strategy is twofold:
+- First, bots are known to have a more productive tweeting behaviour than humans [[http://delivery.acm.org/10.1145/1930000/1920265/p21-chu.pdf?ip=146.175.5.198&id=1920265&acc=ACTIVE%20SERVICE&key=D7FC43CABE88BEAA%2EE1DEF47A6C0527C4%2E4D4702B0C3E38B35%2E4D4702B0C3E38B35&CFID=517147308&CFTOKEN=29245406&__acm__=1433514639_03e1ac45f70c85b1fa352c6ff0acd697][(Chu et al. 2010).]] 
+- Secondly, bots are known to have a more evenly distributed tweeting behaviour across time than humans.
+  That means that in periods of the week of less human tweeting activity (night and weekends), proportionally more
+  bot-authored tweets will be captured by the stream.
+# Also, a dataset extracted from the [[https://www.statistik-berlin-brandenburg.de/regionales/regionalstatistiken/regionalstatistiken.asp][Berlin register data]] was
+
+** Release
+
+Currently there are datasets available for Berlin, Brussels, Antwerp and Amsterdam.
+Due to the [[ https://dev.twitter.com/terms/api-terms][Twitter API Terms of Service]], only ~tweet id~ and the language identification postprocessing.
+In order to fetch the data run this on your command line:
+
+#+BEGIN_SRC bash
+git clone https://github.com/emanjavacas/urban_dataset
+#+END_SRC
+
+You can use the REST API of Twitter to retrieve the actual tweets and locations. We plan to publish a
+script that does precisely this for you.
+
+*** Dataset expansion
+
+Once a sufficient number of known users were collected, a parallel tweet collection method was applied.
+This consisted in selectively retrieving tweets for the known ids, using the [[https://dev.twitter.com/rest/reference/get/statuses/user_timeline][RESTful API]] for mining user timelines.
 
 * Visualization tool
 #+CAPTION: showing proportional densities of tweets in Antwerp
@@ -17,7 +61,7 @@ The menu frame allows selecting the specific settings in which the visualization
 
 ** Settings
 
-Settings are best navigated using the panel on the left handside of the menu.
+Settings are best navigated using the panel on the left-hand side of the menu.
 
 #+CAPTION: initialization menu
 [[./img/init_menu.png]]
@@ -76,43 +120,10 @@ both in the *menu frame* and at run time in the form of a dropdown list.
 
 Once all settings are selected the application can be run by clicking on the init button.
 
-* Data
-
-** General dataset
-
-The general dataset consists of a collection of tweets directly collected from the [[https://dev.twitter.com/streaming/overview][Twitter Streaming API]] since December 2014.
-Given the nature of the dataset, only tweets with geolocation information were collected.
-According to Leetaru et al. 2012, only 1,6% of the Twitter stream is actually shipped with geolocation information.
-This is a heavy contraint on the top of the general twitter streaming limit of ~1%.
-Currently, the dataset has grown above 2 million tweets with the following proportions
-
-| City      | Number of tweets |
-|-----------+------------------|
-| Amsterdam |           679205 |
-| Antwerp   |           415813 |
-| Berlin    |           691998 |
-| Brussels  |           497667 |
-
-** Berlin dataset
-
-For the Berlin dataset, non-exhaustive bot detection was semi-manually performed with the aid of [[http://truthy.indiana.edu/botornot/][Bot or Not?]] and a set of heuristics based on profile information.
-A preselection of candidates was done by sorting ids by (i) total number of tweets in the database and (ii) total number of statuses.
-The rationale behind this strategy is twofold:
-- First, bots are known to have a more productive tweeting behaviour than humans [[http://delivery.acm.org/10.1145/1930000/1920265/p21-chu.pdf?ip=146.175.5.198&id=1920265&acc=ACTIVE%20SERVICE&key=D7FC43CABE88BEAA%2EE1DEF47A6C0527C4%2E4D4702B0C3E38B35%2E4D4702B0C3E38B35&CFID=517147308&CFTOKEN=29245406&__acm__=1433514639_03e1ac45f70c85b1fa352c6ff0acd697][(Chu et al. 2010).]] 
-- Secondly, bots are known to have a more evenly distributed tweeting behaviour across time than humans.
-  That means that in periods of the week of less human tweeting activity (night and weekends), proportionally more
-  bot-authored tweets will be captured by the stream.
-# Also, a dataset extracted from the [[https://www.statistik-berlin-brandenburg.de/regionales/regionalstatistiken/regionalstatistiken.asp][Berlin register data]] was
-
-*** Dataset expansion
-
-Once a sufficient number of known users were collected, a parallel tweet collection method was applied.
-This consisted on selectively retrieve tweets for the known ids. Using the [[https://dev.twitter.com/rest/reference/get/statuses/user_timeline][RESTful API]] for mining user timelines.
-
 * Language detection
 
-Language detection was carried out following [ref]. They found out that a majority approach using *langid.py*, *cld2* and *LangDetect*
-consitenly outperformed any other considered individual system (see paper for more information on this).
+Language detection was carried out following [Lui & Baldwin 2014]. They found out that a majority approach using *langid.py*, *cld2* and *LangDetect*
+consistenly outperformed any other considered individual system (see paper for more information on this).
 
 | Package    | Coverage       | Other            |
 |------------+----------------+------------------|
@@ -123,8 +134,8 @@ consitenly outperformed any other considered individual system (see paper for mo
 
 * Dependencies
 
-Severals libraries were employed. All of them are part of the JVM ecosystem and were ensambled into uniform Clojure code
-by taking advantage of the Java-[[clojure.org/java_interop][interop]] facilities that [[http://clojure.org/][Clojure]] offers.
+Several libraries were employed. All of them are part of the JVM ecosystem and were ensambled into uniform Clojure code
+by taking advantage of the [[clojure.org/java_interop][Java-interop]] facilities that [[http://clojure.org/][Clojure]] offers.
 
 - [[http://quil.info][Quil]] (depends on [[https://processing.org][Processing]])
 - [[unfoldingmaps.org][Unfolding Maps]]
@@ -132,6 +143,27 @@ by taking advantage of the Java-[[clojure.org/java_interop][interop]] facilities
 - [[https://github.com/daveray/seesaw][Seesaw]] (based on Swing)
 
 * Running the application
+
+[[urban-tweeters-0.1.0-SNAPSHOT-standalone.jar][*Download the app*]]
+
+The easiest way to run the application is downloading the [[urban-tweeters-0.1.0-SNAPSHOT-standalone.jar][jar executable]]. 
+Make sure that you have at least version 7 of the JDK installed by inputing this in your command line:
+
+#+BEGIN_EXAMPLE
+java -version
+javac -version
+#+END_EXAMPLE
+
+Double click on the downloaded file should work, otherwise try it from the command line as per:
+#+BEGIN_EXAMPLE
+java -jar path/to/urban-tweeters..jar
+#+END_EXAMPLE
+
+If you want to build the app yourself, you are going to need a couple of things:
+- A [[http://clojure.org][Clojure]] installation.
+- The easiest way of running Clojure code is using [[http://leiningen.org][Leiningen]].
+- Unfortunately, some of the dependencies are not available from [[http://clojars.org][Clojars]] and won't be automatically pulled by Leiningen. The workaround is to use the [[https://github.com/kumarshantanu/lein-localrepo][lein-localrepo]] plugin.
+- Download the jars for /unfolding/, /controlp5/, /log4j/, /json4proc/ and /glgraphics/ and intall them locally following the lein-localrepo instructions.
 
 The application has been reported to run on the vast majority of Mac OS versions and Windows.
 More concretely, it has been tested on the following Operative Systems:
@@ -142,23 +174,28 @@ More concretely, it has been tested on the following Operative Systems:
 | Ubuntu 15.04  | 3,1 GHz Intel Core i5 | 8 GB   |
 | Windows 7     | 2,6 GHz Intel Core i5 | 8 GB   |
 
-The easiest way to run the application is downloading the jar executable. Make sure that you have at least version 7 of the JDK installed.
-If you want to build it yourself, you are going to need a couple of things:
-- A [[http://clojure.org][Clojure]] installation.
-- The easiest way of running Clojure code is using [[http://leiningen.org][Leiningen]].
-- Unfortunately, some of the dependencies are not available from [[http://clojars.org][Clojars]] and won't be automatically pulled by Leiningen. The workaround is to use the [[https://github.com/kumarshantanu/lein-localrepo][lein-localrepo]] plugin.
-- Download the jars for /unfolding/, /controlp5/, /log4j/, /json4proc/ and /glgraphics/ and intall them locally following the lein-localrepo instructions.
+If you have any trouble trying to run the application I'd be happy to hear about that through a [[https://github.com/emanjavacas/urban-tweeters/issues][Issue]].
 
 ** Bugs
 
-There is a known bug that affects computers running Ubuntu. The application starts but any attemp to close the
-visualization frame results in a core dump failure, meaning that it won't close. In any case, check that
-you have a JDK version not older than 7.
+There is a known bug that affects (at least some) computers running Ubuntu. The application starts but any attemp to close the
+visualization frame results in a core dump failure, meaning that it won't close. In any case, check that you have a JDK version not older than 7.
 
 * Literature
-
+# /Geo-located Twitter as proxy for global mobility patterns/ *Hawelka et al.* 2014
+- /Accurate language identification of twitter messages/ *Lui, M. & Baldwin T.* EACL 2014
 
 * License
 
+#+begin_html
+<a href="http://opensource.org/licenses/GPL-3.0">
+  <img src="http://img.shields.io/:license-gpl-blue.svg" alt=":license-gpl-blue.svg" />
+</a>
+
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=VCVAS6KPDQ4JC&lc=BE&item_number=refcard%2dorg%2dbabel&currency_code=EUR&bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHosted">
+  <img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif" alt="btn_donate_LG.gif" />
+</a>
+#+end_html
+
 Copyright © 2015 Enrique Manjavacas
-Distributed under the Eclipse Public License either version 1.0.
+
