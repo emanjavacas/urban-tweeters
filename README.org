@@ -8,20 +8,18 @@ Parallel to the dataset, we are releasing an application that allow to visualize
 # Is the data really the main goal? Shouldn't we have multiple goals? (data / visualisation / ... )
 # We aren't even sharing the data. I thought the goal was to check if Twitter is a good representation of the diversity of language use in cities.
 
-  This is a project based on Quil and Unfolding for Processing for visualizing urban
-multilingualism through Twitter data. 
-# add links for the other projects
+This is a project based on *Quil* and *Unfolding for Processing* for visualizing urban multilingualism through Twitter data. 
 
 * Visualization tool
 
 [[./img/antwerp.png]]
 
-The visualization tool consists of a *menu frame* and the actual *visualization frame*.
+The visualization tool consists of a *menu frame* (image below) and the actual *visualization frame* (image above).
 The menu frame allows selecting the specific settings in which the visualization will take place.
 
 ** Settings
 
-Settings are best navigated using the panel on the left hand side of the menu.
+Settings are best navigated using the panel on the left hand side of the menu. We will discuss each tab of the menu below.
 
 [[./img/init_menu.png]]
 
@@ -34,14 +32,17 @@ for creating such grid files out of raw twitter json data.
 
 A description of each grid file is being shown inline at the bottom of the menu frame.
 
+*** Init menu
+
+Once all settings are selected, the application can be run by clicking on the *init* button.
+
 *** Screen settings
 
-You can also select the *width* and *height* of the visualization frame. 
-The two resting options *loc?* and *filter* are somehow more specific.
-If *loc?* is activated, the exact coordinates where the mouse is pointing will be shown on the map.
-*filter* influences the number of languages that the user can choose from at run time.
-A higher value will prevent rare languages from appearing in the dropdown list.
-It doesn't affect the application behaviour when running on monolingual mode.
+You can select the *width* and *height* of the visualization frame. 
+
+The two resting options *loc?* and *filter* are more specific.
+- If *loc?* is activated, the exact coordinates where the mouse is pointing will be shown on the map.
+- *filter* influences the number of languages that the user can choose from at run time. A higher value will prevent rare languages from appearing in the dropdown list. It doesn't affect the application behaviour when running in monolingual mode.
 
 *** Visualization mode
 There are three types of visualization.
@@ -50,15 +51,11 @@ There are three types of visualization.
 
 **** Monolingual
      
-Visualization is carried out in a heat map fashion.
-Color is mapped to the total number of tweets written in a given language.
-The color hue will range from less to more dark with increasing number of tweets.
-A slider *ALPHA* controls the transparency.
-Another one, *RED* controls the amount of red that is being plotted.
-It can be used to affect the color range in which the heat map will move.
-A third and last slider *BETA* can be use to highlight and enhance the differences across cells.
-See section Sigmoid for an explanation.
-Additionally, a dropdown list allows the user to select the current language.
+Visualization is carried out in a heat map fashion. The color hue will range from less to more dark with increasing number of tweets in a given language in that location.
+- A slider *ALPHA* controls the transparency of the color.
+- Another one, *RED* controls the amount of red that is being plotted. It can be used to affect the color range in which the heat map will move.
+- A third and last slider *BETA* can be use to highlight and enhance the differences across cells. See section Sigmoid for an explanation. # Where is this sigmoid section?
+- Additionally, a dropdown list allows the user to select the current language.
 
 **** Bilingual
 
@@ -73,17 +70,14 @@ Language one will be mapped to the lighter colour, whereas language two will be 
 In the multilingual setting a lighter colour is mapped to a higher cell values.
 The meaning of each cell value can be tuned with the option *mode*, which is available 
 both in the *menu frame* and at run time in the form of a dropdown list.
-
-*** Init menu
-
-Once all settings are selected the application can be run by clicking on the init button.
+!# This is very unclear. I thought the multilingual setting mapped the number of languages spoken in that area? With a darker color for more languages and lighter color for less?
 
 * Data
 
 ** General dataset
 
 The general dataset consists of a collection of tweets directly collected from the [[https://dev.twitter.com/streaming/overview][Twitter Streaming API]] since December 2014.
-Given the nature of the dataset, only tweets with geolocation information were collected.
+Given the purpose of the dataset, only tweets with geolocation information were collected.
 According to Leetaru et al. 2012, only 1,6% of the Twitter stream is actually shipped with geolocation information.
 This is a heavy contraint on the top of the general twitter streaming limit of ~1%.
 Currently, the dataset has grown above 2 million tweets with the following proportions
@@ -98,6 +92,7 @@ Currently, the dataset has grown above 2 million tweets with the following propo
 ** Berlin dataset
 
 For the Berlin dataset, non-exhaustive bot detection was semi-manually performed with the aid of [[http://truthy.indiana.edu/botornot/][Bot or Not?]] and a set of heuristics based on profile information.
+# Why only for the Berlin dataset? And why does only the Berlin dataset have a separate section?
 A preselection of candidates was done by sorting ids by (i) total number of tweets in the database and (ii) total number of statuses.
 The rationale behind this strategy is twofold:
 - First, bots are known to have a more productive tweeting behaviour than humans [[http://delivery.acm.org/10.1145/1930000/1920265/p21-chu.pdf?ip=146.175.5.198&id=1920265&acc=ACTIVE%20SERVICE&key=D7FC43CABE88BEAA%2EE1DEF47A6C0527C4%2E4D4702B0C3E38B35%2E4D4702B0C3E38B35&CFID=517147308&CFTOKEN=29245406&__acm__=1433514639_03e1ac45f70c85b1fa352c6ff0acd697][(Chu et al. 2010).]] 
@@ -109,12 +104,11 @@ The rationale behind this strategy is twofold:
 *** Dataset expansion
 
 Once a sufficient number of known users were collected, a parallel tweet collection method was applied.
-This consisted of selectively retrieving tweets for the known ids. Using the [[https://dev.twitter.com/rest/reference/get/statuses/user_timeline][RESTful API]] for mining user timelines.
+This consisted of selectively retrieving tweets for the known ids. Using the [[https://dev.twitter.com/rest/reference/get/statuses/user_timeline][RESTful API]] for mining user timelines. Given that we know they (might) have their geolocation option on, we can check if they previously tweeted at our locations of interest.
 
 * Language detection
 
-Language detection was carried out following [ref]. They found out that a majority approach using *langid.py*, *cld2* and *LangDetect*
-consistenly outperformed any other considered individual system (see paper for more information on this).
+Language detection was carried out following [ref]. They found out that a majority approach using *langid.py*, *cld2* and *LangDetect* consistenly outperformed any other considered individual system (see paper for more information on this).
 
 | Package    | Coverage       | Other            |
 |------------+----------------+------------------|
@@ -159,18 +153,19 @@ you have a JDK version not older than 7.
 
 * Literature
 
-langid.py Lui and Baldwin 2012
-CLD2 McCandless 2010
-LangDetect Nakatani 2010
-Lui and Baldwin 2014
-Hawelka et al. 2014
-Leetaru et al. 2012
-Scheffler et al 2014
-White 1983
-Reardon & Firebaugh 
+- langid.py Lui and Baldwin 2012
+- CLD2 McCandless 2010
+- LangDetect Nakatani 2010
+- Lui and Baldwin 2014
+- Hawelka et al. 2014
+- Leetaru et al. 2012
+- Scheffler et al 2014
+- White 1983
+- Reardon & Firebaugh 
 
 * License
 
 Copyright © 2015 Enrique Manjavacas
+
 Distributed under the Eclipse Public License - Version 1.0.
 https://www.eclipse.org/legal/epl-v10.html 
