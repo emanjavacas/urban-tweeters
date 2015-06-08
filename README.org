@@ -10,7 +10,7 @@ The novum of this dataset relies in that the data collection was restricted to f
 
 ** General dataset
 
-The general dataset consists of a collection of tweets directly collected from the [[https://dev.twitter.com/streaming/overview][Twitter Streaming API]] since December 2014.
+The general dataset consists of a collection of tweets directly retrieved from the [[https://dev.twitter.com/streaming/overview][Twitter Streaming API]] since December 2014.
 Given the nature of the dataset, only tweets with geolocation information were collected.
 According to Leetaru et al. 2012, only 1,6% of the Twitter stream is actually shipped with geolocation information.
 This is a heavy contraint on the top of the general twitter streaming limit of ~1%.
@@ -190,10 +190,6 @@ visualization frame results in a core dump failure, meaning that it won't close.
 #+begin_html
 <a href="http://opensource.org/licenses/GPL-3.0">
   <img src="http://img.shields.io/:license-gpl-blue.svg" alt=":license-gpl-blue.svg" />
-</a>
-
-<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=VCVAS6KPDQ4JC&lc=BE&item_number=refcard%2dorg%2dbabel&currency_code=EUR&bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHosted">
-  <img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif" alt="btn_donate_LG.gif" />
 </a>
 #+end_html
 
