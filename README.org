@@ -13,7 +13,7 @@ The novum of this dataset relies in that the data collection was restricted to f
 The general dataset consists of a collection of tweets directly retrieved from the [[https://dev.twitter.com/streaming/overview][Twitter Streaming API]] since December 2014.
 Given the nature of the dataset, only tweets with geolocation information were collected.
 According to Leetaru et al. 2012, only 1,6% of the Twitter stream is actually shipped with geolocation information.
-This is a heavy contraint on the top of the general twitter streaming limit of ~1%.
+This is a heavy constraint on the top of the general twitter streaming limit of ~1%.
 Currently, the dataset has grown above 2 million tweets with the approximately following proportions (7/6/2015).
 
 | City      | Number of tweets |
@@ -34,6 +34,11 @@ The rationale behind this strategy is twofold:
   bot-authored tweets will be captured by the stream.
 # Also, a dataset extracted from the [[https://www.statistik-berlin-brandenburg.de/regionales/regionalstatistiken/regionalstatistiken.asp][Berlin register data]] was
 
+*** Dataset expansion
+
+Once a sufficient number of known users were collected, a parallel tweet collection method was applied.
+This consisted in selectively retrieving tweets for the known ids, using the [[https://dev.twitter.com/rest/reference/get/statuses/user_timeline][RESTful API]] for mining user timelines.
+
 ** Release
 
 Currently there are datasets available for Berlin, Brussels, Antwerp and Amsterdam.
@@ -46,11 +51,6 @@ git clone https://github.com/emanjavacas/urban_dataset
 
 You can use the REST API of Twitter to retrieve the actual tweets and locations. We plan to publish a
 script that does precisely this for you.
-
-*** Dataset expansion
-
-Once a sufficient number of known users were collected, a parallel tweet collection method was applied.
-This consisted in selectively retrieving tweets for the known ids, using the [[https://dev.twitter.com/rest/reference/get/statuses/user_timeline][RESTful API]] for mining user timelines.
 
 * Visualization tool
 #+CAPTION: showing proportional densities of tweets in Antwerp
@@ -171,19 +171,20 @@ More concretely, it has been tested on the following Operative Systems:
 | OS            | Processor             | Memory |
 |---------------+-----------------------+--------|
 | OS X Yosemite | 2,7 GHz Intel Core i5 | 8 GB   |
-| Ubuntu 15.04  | 3,1 GHz Intel Core i5 | 8 GB   |
+| Ubuntu 14.04  | 3,1 GHz Intel Core i5 | 8 GB   |
 | Windows 7     | 2,6 GHz Intel Core i5 | 8 GB   |
 
 If you have any trouble trying to run the application I'd be happy to hear about that through a [[https://github.com/emanjavacas/urban-tweeters/issues][Issue]].
 
 ** Bugs
 
-There is a known bug that affects (at least some) computers running Ubuntu. The application starts but any attemp to close the
+There is a known bug that affects (at least some) computers running Ubuntu 15.04. The application starts but any attemp to close the
 visualization frame results in a core dump failure, meaning that it won't close. In any case, check that you have a JDK version not older than 7.
 
 * Literature
 # /Geo-located Twitter as proxy for global mobility patterns/ *Hawelka et al.* 2014
 - /Accurate language identification of twitter messages/ *Lui, M. & Baldwin T.* EACL 2014
+- [[http://emanjavacas.github.io/slides/urban_tweeters.html][Mapping Urban Mulitilingualism through Twitter]] *Manjavacas, E & Verhoeven B.* DH Benelux 2015
 
 * License
 
