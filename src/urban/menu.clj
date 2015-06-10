@@ -143,9 +143,9 @@
             [:height "This option specifies the applet screen height"
              :text #(Integer/valueOf %)]
             [:loc? "Display the coordinates of the mouse"
-             :combobox #(Integer/valueOf %)  0 10 25 50 100]
+             :combobox #(Integer/valueOf %)  "true" "false"]
             [:filter "This option sets a lower bound of tweets for the considered languages"
-             :combobox to->boolean "true" "false"]])))))
+             :combobox to->boolean 0 10 25 50 100]])))))
 
 (def viz-mode
   (explorer-content

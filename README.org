@@ -99,7 +99,7 @@ A slider *ALPHA* controls the transparency.
 Another one, *RED* controls the amount of red that is being plotted.
 It can be used to affect the color range in which the heat map will move.
 A third and last slider *BETA* can be use to highlight and enhance the differences across cells.
-See section Sigmoid for an explanation.
+See section Sigmoid for an explanation. (to be done)
 Additionally, a dropdown list allows the user to select the current language.
 
 **** Bilingual
@@ -144,9 +144,9 @@ by taking advantage of the [[clojure.org/java_interop][Java-interop]] facilities
 
 * Running the application
 
-[[urban-tweeters-0.1.0-SNAPSHOT-standalone.jar][*Download the app*]]
+[[https://github.com/emanjavacas/urban-tweeters/releases/download/0.1.0b/urban-tweeters-0.1.0-SNAPSHOT-standalone.jar][*Download the app*]]
 
-The easiest way to run the application is downloading the [[urban-tweeters-0.1.0-SNAPSHOT-standalone.jar][jar executable]]. 
+The easiest way to run the application is downloading the [[https://github.com/emanjavacas/urban-tweeters/releases/download/0.1.0b/urban-tweeters-0.1.0-SNAPSHOT-standalone.jar][jar executable]]
 Make sure that you have at least version 7 of the JDK installed by inputing this in your command line:
 
 #+BEGIN_EXAMPLE
