@@ -6,6 +6,13 @@
             [clojure.string :as s]
             [quil.core :refer [mouse-x mouse-y fill text]]))
 
+(defn now [] (java.util.Date.))
+
+(defn invert
+  "invert the order of a coll"
+  [coll]
+  (vec (reduce conj nil (vec coll))))
+
 (defn deep-merge-with
   "Like merge-with, but merges maps recursively, applying the given fn
   only when there's a non-map at a particular level."
@@ -138,7 +145,7 @@
     0))
 
 (defn inside?
-  "point inside a irregular polygon?"
+  "point inside an irregular polygon?"
   [p poly]
   (odd?
    (reduce +
@@ -188,6 +195,12 @@
       (swap! grid assoc [lon lat w h] ls-map))
     @grid))
 
+(defn frm-save
+ "Save a clojure form to file."
+  [file form]
+  (with-open [w (java.io.FileWriter. (io/file file))]
+    (binding [*out* w *print-dup* true] (prn form))))
+
 (defn fetch-ls
   "returns a set of language from a grid"
   ([grid] (fetch-ls grid 20))
@@ -218,4 +231,5 @@
   ([^DropdownList ddl ks vs]
    (doseq [[k v] (zipmap ks vs)]
      (.addItem ddl k v))))
+
 

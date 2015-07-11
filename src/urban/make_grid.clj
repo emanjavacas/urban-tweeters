@@ -3,8 +3,10 @@
             [clj-json.core :as clj-json];fast json reader
             [clj-time.core :as time]
             [clj-time.format :as format]
+            [com.evocomputing.colors :as colors]
             [urban.data :refer [bots boxes]]
-            [urban.utils :refer [inside? tweet->coors find-city deep-merge-with]]))
+            [urban.utils :refer [inside? tweet->coors find-city deep-merge-with lazy-lines
+                                 max-range entropy rescaler load-grid invert]]))
 
 (defn tweet-stream
   "fast json parsing for tweets"
@@ -21,11 +23,30 @@
          v (- (count coll) m)]
      (some #(when (<= v (val %)) (key %)) f))))
 
-(defn tweet->lang
-  "extract language guesses"
-  [t]
-  (let [{l "langs"} t]
-    (all-but-n (vals l))))
+;; (defn tweet->lang
+;;   "extract language guesses"
+;;   [t]
+;;   (let [{l "langs"} t]
+;;     (all-but-n (vals l))))
+
+(defn majority [xs]
+  (let [n (count xs)
+        mid (Math/floor (/ n 2))
+        f (frequencies xs)
+        val (first (sort-by second > f))]
+    (if (> (second val) mid)
+      (first val)
+      nil)))
+
+(defn tweet->lang [tw & format]
+  (case (first format)
+    :majority (majority
+                ((juxt #(get % "langid_guess")
+                       #(get % "cld2_guess")
+                       #(get % "langdetect_guess"))
+                 (get tw "langs")))
+    :all-but-1 (all-but-n (vals (get tw "langs")))
+    :default   (get tw "lang")))
 
 (defn night?
   "returns boolean, parses twitter date format"
@@ -37,19 +58,33 @@
 (defn tweet->night? [t]
   (night? (get t "created_at") 22 7))
 
-(defn fetch-hoods
-  "loads a hood"
-  [city]
-  (let [cities {"berlin" "resources/hoods/berlin.geojson"
-                "berlin-light" "resources/hoods/berlin.json"
-                "amsterdam" "resources/hoods/amsterdam.geojson"
-                "antwerp" "resources/hoods/antwerp.geojson"
-                "brussels" "resources/hoods/bruxelles.geojson"}
-        cityjson (json/read-json (slurp (get cities city)))]
-    (map (fn [hood] {:meta (get-in hood [:properties :name]) 
-                     :geometry (vec (for [[y x] (first (get-in hood [:geometry :coordinates]))]
-                                      [x y]))})
-         (:features cityjson))))
+(def example
+  {"type" "FeatureCollection"
+   "features"
+   [{"type" "Feature"
+     "properties" {"name" "x"}
+     "geometry"   {"type" "MultiPolygon"
+                   "coordinates" [[[]]]}
+     }
+    {"type" "Feature"
+     "properties" {"name" "y"}
+     "geometry"   {"type" "MultiPolygon"
+                   "coordinates" [[[]]]}
+     }
+    {"type" "Feature"
+     "properties" {"name" "z"}
+     "geometry"   {"type" "MultiPolygon"
+                   "coordinates" [[[]]]}
+     }
+    ]
+   })
+
+(defn in-feature [p feat]
+  (let [feattype (get-in feat ["geometry" "type"])
+        coords   (get-in feat ["geometry" "coordinates"])]
+    (case feattype
+      "Polygon"      (inside? [x y] coords)  
+      "MultiPolygon" (some #(inside? [x y] %) coords))))
 
 ;;; Grid operations
 (defn- next-lower
@@ -87,27 +122,42 @@
                       (ps->tile ps xs ys))]
      (add-wh grid w h))))
 
-(defn- ps->poly
-  "returns a sequence of maps {poly : val}"
-  [ps polys]
-  (for [{:keys [meta geometry]} polys
-        [p v] ps
-        :when (inside? p geometry)]
-    {meta {v 1}}))
+(defn ps->geogrid
+  "insert points into a geogrid (geojson-formatted polygrid)"
+  [geojson ps]
+  (let [main-path ["features"]
+        transition (atom (update-in geojson ["features"] #(zipmap (range) %)))]
+    (doseq [[p v] ps
+            [idx feat] (get-in @transition main-path)
+            :when (in-feature p feat)
+            :let [props-path  (into main-path [idx "properties" "langs" v])]]
+     (swap! transition update-in props-path (fnil inc 0)))
+    (update-in @transition ["features"] #(vec (vals %)))))
 
-(defn make-polygrid
-  [ps polys]
-  (reduce (partial deep-merge-with +)
-          (ps->poly ps polys)))
+;; (defn- ps->poly
+;;   "returns a sequence of maps {poly : val}"
+;;   [ps polys]
+;;   (for [[coors d] polys
+;;         [p v] ps
+;;         :let [feattype (get-in d [:feature :type])]
+;;         :when (case feattype
+;;                 "Polygon" (inside? p coors)
+;;                 "MultiPolygon" (some #(inside? p %) coors))]
+;;     {coors {v 1}}))
 
-(defn tiles->polys [grid polys]
-  (reduce #(deep-merge-with + % %2)
-          (for [{:keys [meta geometry]} polys
-                [[x y w h] v] grid
-                :when (inside? [(+ (/ w 2) x) (+ (/ h 2) y)] geometry)]
-            {meta {[x y w h] v}})))
+;; (defn make-polygrid
+;;   [ps polys]
+;;   (reduce (partial deep-merge-with +)
+;;           (ps->poly ps polys)))
 
-(defn save-grid [fname grid]
+;; (defn tiles->polys [grid polys]
+;;   (reduce #(deep-merge-with + % %2)
+;;           (for [[coors m] polys
+;;                 [[x y w h] v] grid
+;;                 :when (inside? [(+ (/ w 2) x) (+ (/ h 2) y)] coors)]
+;;             {coors {[x y w h] v}})))
+
+(defn save-grid-sparse [fname grid]
   (with-open [wrt (clojure.java.io/writer (str fname ".grid"))]
     (binding [*out* wrt]
       (let [[lat lon w h] (first (second grid))]
@@ -119,6 +169,70 @@
                    prt-tile (str lat " " lon)
                    prt-ls (apply str (interpose " " (flatten (seq ls))))]]
           (println (str prt-tile " | " prt-ls))))))
+
+(defn lang->color [ls myfn max-val max-sum & {:keys [format]}]
+  (let [[a b c d]
+        (case format
+          :rgb [255
+                (int ((rescaler 0 max-val 0 255) (myfn ls)))
+                0
+                128]
+          :hsl [(int ((rescaler 0 max-val 0 144) (myfn ls)))
+                100
+                (int ((rescaler 0 max-sum 0 100) (reduce + ls)))
+                128])]
+    (->> [a b c d]
+        (apply colors/create-color)
+        (colors/rgb-hexstr))))
+
+(defn tile->props 
+  [ls max-count max-sum max-entropy]
+  {"count-hsl"   (lang->color (vals ls) count max-count max-sum   :format :hsl)
+   "entropy-hsl" (lang->color (vals ls) entropy max-entropy max-sum :format :hsl)
+   "count-rgb" (lang->color (vals ls) count max-count max-sum :format :rgb)
+   "entropy-rgb" (lang->color (vals ls) entropy max-entropy max-sum :format :rgb)
+   "langs" ls})
+
+(defn squaregrid->geojson
+  "convert grid structure into colorized geojson"
+  [grid]
+    (let [max-entropy (max-range grid entropy)
+          max-count (max-range grid count)
+          max-sum (max-range grid #(reduce + %))
+          feats (for [[dims ls] grid 
+                      :let [props (tile->props ls max-count max-sum max-entropy) 
+                            coors (let [[lon lat w h] dims]
+                                    [[[lat, lon], [(+ lat h), (+ lon w)]]])
+                            geom {"type" "Polygon" "coordinates" coors}]]
+                  {"type" "Feature" "properties" props "geometry" geom})]
+    {"type" "FeatureCollection" "features" feats}))
+
+(defn colorize-geojson
+  "colorize a geogrid (geojson-formatted polygrid)"
+  [geogrid]
+  (let [grid (map #([(get-in % ["geometry" "coordinates"])
+                     (get-in % ["properties" "langs"])])
+                  (get geogrid "features"))
+        max-entropy (max-range grid entropy)
+        max-count (max-range grid count)
+        max-sum (max-range grid #(reduce + %))
+        new-feats (map #(tile->props % max-count max-sum max-entropy) (map second grid))]
+    (update-in geogrid ["features"] new-feats)))
+
+;;; Load points
+(def ps (for [tw (tweet-stream "/Users/quique/data/twitproj/streaming_data/new/antwerp_100.json")
+              :when (tweet->lang tw :majority)]
+          ((juxt tweet->coors #(tweet->lang % :majority)) tw)))
+;;; Load hoods
+;; (def antwerp-hood (fetch-hoods "resources/hoods/antwerp.geojson" [:wijknaam]))
+;; ;;; Compute grid
+;; (def antwerp-polygrid (make-polygrid (take 1000 ps) antwerp-hood))
+;; ;;; Transform into json
+;; (def antwerp (load-grid "files/antwerp.grid"))
+;; (grid->geojson "test.geojson" antwerp-polygrid :format :poly :extraprops antwerp-hoodprops :hoodprops [:wijknaam])
+
+;; (def antwerp-hoodprops (fetch-hoodprops "resources/hoods/antwerp.geojson" [:wijknaam]))
+;; (first antwerp-hoodprops)
 
 ;; (defn ps->poly2 [ps polys]
 ;;   (r/fold
